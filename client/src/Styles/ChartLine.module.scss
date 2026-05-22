@@ -1,0 +1,14 @@
+.chart {
+    width: 500px;
+    margin: 50px auto;
+}
+canvas {
+    width: 500px;
+    height: 500px;
+}
+@media only screen and (max-width: 600px) {
+    .chart {
+        width: 100%;
+        margin: 50px auto;
+    }
+}

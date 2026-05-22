@@ -1,0 +1,130 @@
+version: "3.8"
+
+services:
+  backend:
+    image: dinhngochieu3112004/shoe-gemini-backend:latest
+    environment:
+      - PORT=5001
+      - SERVER_URL=https://giaythethao.click
+      - REACT_APP_URL=https://giaythethao.click
+      - REACT_APP_URL_DOMAIN=https://giaythethao.click
+    secrets:
+      - mongo_uri
+      - redis_uri
+      - jwt_access_key
+      - jwt_refresh_key
+      - momo_access_key
+      - momo_secret_key
+      - vnpay_tmn_code
+      - vnpay_secure_secret
+      - gemini_api_key
+      - email_user
+      - email_client_id
+      - email_client_secret
+      - email_redirect_uri
+      - email_refresh_token
+    volumes:
+      - uploads-data:/app/dist/uploads
+    networks:
+      - mern-stack-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.uploads == true
+      update_config:
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  frontend:
+    image: dinhngochieu3112004/shoe-gemini-frontend:latest
+    networks:
+      - mern-stack-net
+    deploy:
+      replicas: 2
+      placement:
+        max_replicas_per_node: 1
+      update_config:
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        delay: 5s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/conf.d/default.conf
+    networks:
+      - mern-stack-net
+    deploy:
+      mode: global
+      update_config:
+        delay: 10s
+        failure_action: rollback
+      rollback_config:
+        delay: 5s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+networks:
+  mern-stack-net:
+    driver: overlay
+    driver_opts:
+      encrypted: "true"
+
+volumes:
+  uploads-data:
+
+configs:
+  nginx_conf:
+    file: ./nginx/default.conf
+
+secrets:
+  mongo_uri:
+    external: true
+  redis_uri:
+    external: true
+  jwt_access_key:
+    external: true
+  jwt_refresh_key:
+    external: true
+  momo_access_key:
+    external: true
+  momo_secret_key:
+    external: true
+  vnpay_tmn_code:
+    external: true
+  vnpay_secure_secret:
+    external: true
+  gemini_api_key:
+    external: true
+  email_user:
+    external: true
+  email_client_id:
+    external: true
+  email_client_secret:
+    external: true
+  email_redirect_uri:
+    external: true
+  email_refresh_token:
+    external: true

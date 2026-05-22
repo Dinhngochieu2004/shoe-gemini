@@ -1,0 +1,59 @@
+.wrapper {
+    width: 100%;
+}
+
+.main {
+    width: 80%;
+    min-height: 100vh;
+    margin: 150px auto;
+}
+
+.filter-product {
+    width: 100%;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.card {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.pagination {
+    position: absolute;
+    right: 45%;
+    text-align: center;
+}
+h4 {
+    color: black;
+}
+
+@media only screen and (max-width: 600px) {
+    .main {
+        width: 100%;
+        margin: 130px auto;
+    }
+    .card {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        justify-items: center;
+    }
+    .pagination {
+        right: 35%;
+    }
+}
+
+@media only screen and (min-width: 600px) and (max-width: 1024px) {
+    .card {
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 30px;
+    }
+    .filter-product {
+        justify-content: space-between;
+    }
+}

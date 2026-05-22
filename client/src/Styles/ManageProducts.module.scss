@@ -1,0 +1,25 @@
+.pagination {
+    display: flex;
+    justify-content: center;
+    button {
+        margin: 0 5px;
+    }
+}
+
+.title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    h2 {
+        font-size: 23px;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .title {
+        gap: 10px;
+        h2 {
+            font-size: 18px;
+        }
+    }
+}
