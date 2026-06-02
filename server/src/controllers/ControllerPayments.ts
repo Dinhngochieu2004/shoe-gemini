@@ -15,7 +15,7 @@ class ControllerPayments {
             const email = req.user!.email;
 
             const dataCart = await CartModel.findOne({ user: email });
-            if (!dataCart) return res.status(401).json({ message: 'Please add product to cart' });
+            if (!dataCart) return res.status(404).json({ message: 'Please add product to cart' });
             if (!dataCart.address || !dataCart.name || !dataCart.phone) {
                 return res.status(403).json({ message: 'Bạn đang thiếu thông tin' });
             }
@@ -57,52 +57,61 @@ class ControllerPayments {
     }
 
     async paymentVnpay(req: Request, res: Response): Promise<Response> {
-        const email = req.user!.email;
+        try {
+            const email = req.user!.email;
 
-        const dataCart = await CartModel.findOne({ user: email });
-        if (!dataCart) return res.status(401).json({ message: 'Please add product to cart' });
-        if (!dataCart.address || !dataCart.name || !dataCart.phone) {
-            return res.status(403).json({ message: 'Bạn đang thiếu thông tin' });
+            const dataCart = await CartModel.findOne({ user: email });
+            if (!dataCart) return res.status(404).json({ message: 'Please add product to cart' });
+            if (!dataCart.address || !dataCart.name || !dataCart.phone) {
+                return res.status(403).json({ message: 'Bạn đang thiếu thông tin' });
+            }
+
+            const vnpay = new VNPay({
+                tmnCode: readSecret('vnpay_tmn_code', 'VNPAY_TMN_CODE') as string,
+                secureSecret: readSecret('vnpay_secure_secret', 'VNPAY_SECURE_SECRET') as string,
+                vnpayHost: 'https://sandbox.vnpayment.vn',
+                testMode: true,
+                hashAlgorithm: 'SHA512' as HashAlgorithm,
+                loggerFn: ignoreLogger,
+            });
+
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const vnpayResponse = await vnpay.buildPaymentUrl({
+                vnp_Amount: dataCart.sumprice,
+                vnp_IpAddr: '127.0.0.1',
+                vnp_TxnRef: String(dataCart._id),
+                vnp_OrderInfo: String(dataCart._id),
+                vnp_OrderType: ProductCode.Other,
+                vnp_ReturnUrl: `${process.env.SERVER_URL ?? 'http://localhost:5001'}/api/check-payment-vnpay`,
+                vnp_Locale: VnpLocale.VN,
+                vnp_CreateDate: dateFormat(new Date()),
+                vnp_ExpireDate: dateFormat(tomorrow),
+            });
+
+            return res.status(201).json({ vnpayResponse });
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] VNPay payment error:`, error);
+            return res.status(500).json({ message: 'Internal Server Error' });
         }
-
-        // FIX: use env variables instead of hardcoded credentials
-        const vnpay = new VNPay({
-            tmnCode: readSecret('vnpay_tmn_code', 'VNPAY_TMN_CODE') as string,
-            secureSecret: readSecret('vnpay_secure_secret', 'VNPAY_SECURE_SECRET') as string,
-            vnpayHost: 'https://sandbox.vnpayment.vn',
-            testMode: true,
-            hashAlgorithm: 'SHA512' as HashAlgorithm,
-            loggerFn: ignoreLogger,
-        });
-
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const vnpayResponse = await vnpay.buildPaymentUrl({
-            vnp_Amount: dataCart.sumprice,
-            vnp_IpAddr: '127.0.0.1',
-            vnp_TxnRef: (dataCart._id as unknown as { toString(): string }).toString(),
-            vnp_OrderInfo: `${dataCart._id as unknown as string}`,
-            vnp_OrderType: ProductCode.Other,
-            vnp_ReturnUrl: `${process.env.SERVER_URL ?? 'http://localhost:5001'}/api/check-payment-vnpay`,
-            vnp_Locale: VnpLocale.VN,
-            vnp_CreateDate: dateFormat(new Date()),
-            vnp_ExpireDate: dateFormat(tomorrow),
-        });
-
-        return res.status(201).json({ vnpayResponse });
     }
 
     async checkPaymentVnpay(req: Request, res: Response): Promise<void> {
-        const { vnp_ResponseCode, vnp_OrderInfo } = req.query as {
-            vnp_ResponseCode?: string;
-            vnp_OrderInfo?: string;
-        };
+        try {
+            const { vnp_ResponseCode, vnp_OrderInfo } = req.query as {
+                vnp_ResponseCode?: string;
+                vnp_OrderInfo?: string;
+            };
 
-        if (vnp_ResponseCode === '00' && vnp_OrderInfo) {
+            if (vnp_ResponseCode !== '00' || !vnp_OrderInfo) {
+                res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/payments`);
+                return;
+            }
+
             const findCart = await CartModel.findOne({ _id: vnp_OrderInfo });
             if (!findCart) {
-                res.status(404).json({ message: 'Cart not found' });
+                res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/payments`);
                 return;
             }
 
@@ -120,6 +129,9 @@ class ControllerPayments {
             await newPayment.save();
             await findCart.deleteOne();
             res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/paymentsuccess`);
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] checkPaymentVnpay error:`, error);
+            res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/payments`);
         }
     }
 

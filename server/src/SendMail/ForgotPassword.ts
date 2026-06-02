@@ -1,25 +1,24 @@
 import { google } from 'googleapis';
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const CLIENT_ID = process.env.CLIENT_ID as string;
-const CLIENT_SECRET = process.env.CLIENT_SECRET as string;
-const REDIRECT_URI = process.env.REDIRECT_URI as string;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN as string;
-
-const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+import readSecret from '../utils/secret';
 
 const ForgotPassword = async (email: string, token: string, otp: string): Promise<void> => {
     try {
+        const CLIENT_ID = readSecret('email_client_id', 'CLIENT_ID') as string;
+        const CLIENT_SECRET = readSecret('email_client_secret', 'CLIENT_SECRET') as string;
+        const REDIRECT_URI = readSecret('email_redirect_uri', 'REDIRECT_URI') as string;
+        const REFRESH_TOKEN = readSecret('email_refresh_token', 'REFRESH_TOKEN') as string;
+        const EMAIL_USER = readSecret('email_user', 'EMAIL_USER') as string;
+
+        const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+        oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
         const accessToken = await oAuth2Client.getAccessToken();
         const transport = nodemailer.createTransport({
             service: 'gmail',
             auth: {
                 type: 'OAuth2',
-                user: process.env.EMAIL_USER,
+                user: EMAIL_USER,
                 clientId: CLIENT_ID,
                 clientSecret: CLIENT_SECRET,
                 refreshToken: REFRESH_TOKEN,
@@ -27,7 +26,7 @@ const ForgotPassword = async (email: string, token: string, otp: string): Promis
             },
         });
         await transport.sendMail({
-            from: `"GLAB" <${process.env.EMAIL_USER}>`,
+            from: `"GLAB" <${EMAIL_USER}>`,
             to: email,
             subject: '🔐 Khôi phục mật khẩu - GLAB',
             html: `

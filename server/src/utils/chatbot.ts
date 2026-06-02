@@ -18,8 +18,8 @@ const askQuestion = async (question: string): Promise<string> => {
 
         const products: IProductDocument[] = await ProductModel.find({});
 
-        const serverUrl = process.env.SERVER_URL ?? 'http://localhost:5001';
-        const clientUrl = process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000';
+        const serverUrl = process.env.REACT_APP_URL_DOMAIN ?? process.env.REACT_APP_URL ?? 'http://localhost';
+        const clientUrl = process.env.REACT_APP_URL_DOMAIN ?? process.env.REACT_APP_URL ?? 'http://localhost';
 
         const productHTML = products
             .map(

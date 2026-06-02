@@ -32,8 +32,13 @@ function Cart(): JSX.Element {
     }, [dataCart]);
 
     const handleDeleteCart = async (id: string): Promise<void> => {
-        await request.post<{ message: string }>('/api/deletecart', { id }).then((res) => toast.success(res.data.message));
-        getCart();
+        try {
+            const res = await request.post<{ message: string }>('/api/deletecart', { id });
+            toast.success(res.data.message);
+            await getCart();
+        } catch {
+            toast.error('Xóa sản phẩm thất bại, vui lòng thử lại');
+        }
     };
 
     useEffect(() => {

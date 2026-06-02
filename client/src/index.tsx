@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import reportWebVitals from './reportWebVitals';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { privateRoute, publicRoute } from './Route';
+import { publicRoute } from './Route';
 import { Provider } from './store/Provider';
 
 const rootElement = document.getElementById('root');
@@ -14,7 +13,7 @@ root.render(
         <Provider>
             <Router>
                 <Routes>
-                    {[...publicRoute, ...privateRoute].map((route, index) => (
+                    {publicRoute.map((route, index) => (
                         <Route key={index} path={route.path} element={route.element} />
                     ))}
                 </Routes>
@@ -23,4 +22,3 @@ root.render(
     </React.StrictMode>,
 );
 
-reportWebVitals();

@@ -6,3 +6,10 @@ dist/
 *.log
 coverage/
 src/uploads/
+.git/
+aidlc-docs/
+**/*.md
+**/*.test.ts
+**/*.spec.ts
+Dockerfile
+.dockerignore

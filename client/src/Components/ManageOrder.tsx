@@ -30,8 +30,12 @@ function ManageOrder(): JSX.Element {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await request.get<IPayment[]>('/api/getallorder');
-            setDataCart(res.data);
+            try {
+                const res = await request.get<IPayment[]>('/api/getallorder');
+                setDataCart(res.data);
+            } catch {
+                console.error('Không thể tải danh sách đơn hàng');
+            }
         };
         fetchData();
     }, [showModal, showModalCancelOrder]);

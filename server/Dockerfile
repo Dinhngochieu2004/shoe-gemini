@@ -1,13 +1,14 @@
+# syntax=docker/dockerfile:1
+
 # ─── Base ─────────────────────────────────────────────────────────────────────
-FROM node:20.14.0-alpine3.20 AS base
+FROM node:20-alpine AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
 
 # ─── Dev ──────────────────────────────────────────────────────────────────────
-# Cài full deps (nodemon + tsx có trong devDependencies)
-# Source mount từ host qua volume → nodemon hot-reload
 FROM base AS dev
-RUN npm ci --prefer-offline
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
 COPY . .
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
     && chown -R appuser:appgroup /app
@@ -17,20 +18,22 @@ CMD ["npm", "run", "dev:nodemon"]
 
 # ─── Build ────────────────────────────────────────────────────────────────────
 FROM base AS build
-RUN npm ci --prefer-offline
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
 COPY . .
 RUN npm run build
 
 # ─── Production (Jenkins → Docker Swarm) ──────────────────────────────────────
-FROM node:20.14.0-alpine3.20 AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --prefer-offline
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/src/uploads ./dist/uploads
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --prefer-offline \
+    && addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /app/dist/uploads \
     && chown -R appuser:appgroup /app
+COPY --from=build --chown=appuser:appgroup /app/dist ./dist
 USER appuser
 EXPOSE 5001
 CMD ["node", "dist/server.js"]

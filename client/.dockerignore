@@ -4,3 +4,7 @@ build/
 .env.*
 *.log
 coverage/
+.git/
+**/*.md
+Dockerfile
+.dockerignore

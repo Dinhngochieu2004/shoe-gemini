@@ -44,11 +44,11 @@ function Payments(): JSX.Element {
 
     const totalProduct = useMemo(() => dataCart.map((item) => item.sumprice)[0] ?? 0, [dataCart]);
 
-    useEffect(() => { axios.get<{ data: ILocation[] }>('https://esgoo.net/api-tinhthanh/1/0.htm').then((res) => setTinhThanh(res.data.data)); }, []);
-    useEffect(() => { if (idTinhThanh !== 0) axios.get<{ data: ILocation[] }>(`https://esgoo.net/api-tinhthanh/2/${idTinhThanh}.htm`).then((res) => setHuyen(res.data.data)); }, [idTinhThanh]);
-    useEffect(() => { if (idHuyen !== 0) axios.get<{ data: ILocation[] }>(`https://esgoo.net/api-tinhthanh/3/${idHuyen}.htm`).then((res) => setXa(res.data.data)); }, [idHuyen]);
+    useEffect(() => { axios.get<{ data: ILocation[] }>('https://esgoo.net/api-tinhthanh/1/0.htm').then((res) => setTinhThanh(res.data.data)).catch(() => {}); }, []);
+    useEffect(() => { if (idTinhThanh !== 0) axios.get<{ data: ILocation[] }>(`https://esgoo.net/api-tinhthanh/2/${idTinhThanh}.htm`).then((res) => setHuyen(res.data.data)).catch(() => {}); }, [idTinhThanh]);
+    useEffect(() => { if (idHuyen !== 0) axios.get<{ data: ILocation[] }>(`https://esgoo.net/api-tinhthanh/3/${idHuyen}.htm`).then((res) => setXa(res.data.data)).catch(() => {}); }, [idHuyen]);
     useEffect(() => { const p = dataCart?.map((item) => item.products); setDataProducts(p[0] ?? []); }, [dataCart]);
-    useEffect(() => { request.get<ICart[]>('/api/cart').then((res) => setDataCart(res.data)); }, []);
+    useEffect(() => { request.get<ICart[]>('/api/cart').then((res) => setDataCart(res.data)).catch(() => {}); }, []);
     useEffect(() => { const t = dataCart?.reduce((total, c) => total + c.products.reduce((s, p) => s + p.quantity, 0), 0); setDataLengthProducts(t); }, [dataCart]);
     useEffect(() => { window.scrollTo(0, 0); }, []);
 

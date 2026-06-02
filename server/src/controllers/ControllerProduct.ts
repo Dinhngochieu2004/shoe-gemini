@@ -92,16 +92,19 @@ class ControllerProducts {
                 description: string;
             };
             const data = await ProductModel.findOne({ _id: id });
-            if (data) {
-                await data.updateOne({
-                    name: nameProduct,
-                    price: Number(priceProduct),
-                    description,
-                });
-                res.status(200).json({ message: 'Cập Nhật Thành Công !!!' });
+            if (!data) {
+                res.status(404).json({ message: 'Sản phẩm không tồn tại!' });
+                return;
             }
+            await data.updateOne({
+                name: nameProduct,
+                price: Number(priceProduct),
+                description,
+            });
+            res.status(200).json({ message: 'Cập Nhật Thành Công !!!' });
         } catch (error) {
             console.error(error);
+            res.status(500).json({ message: 'Lỗi server!' });
         }
     }
 
@@ -125,21 +128,31 @@ class ControllerProducts {
     }
 
     async EditOrder(req: Request, res: Response): Promise<void> {
-        const { id, valueOption } = req.body as { id: string; valueOption: number };
-        const dataOrder = await PaymentModel.findOne({ _id: id });
-        if (dataOrder) {
+        try {
+            const { id, valueOption } = req.body as { id: string; valueOption: number };
+            const dataOrder = await PaymentModel.findOne({ _id: id });
+            if (!dataOrder) {
+                res.status(404).json({ message: 'Đơn hàng không tồn tại!' });
+                return;
+            }
             await dataOrder.updateOne({ tinhtrang: valueOption === 0 ? false : true });
             res.status(200).json({ message: 'Cập Nhật Thành Công !!!' });
+        } catch (error) {
+            res.status(500).json({ message: 'Lỗi server!' });
         }
     }
 
     async SimilarProduct(req: Request, res: Response): Promise<Response> {
-        const { nameProduct } = req.query as { nameProduct?: string };
-        const dataProducts = await ProductModel.find({
-            slug: { $regex: nameProduct ?? '', $options: 'i' },
-        });
-        if (dataProducts.length <= 0) return res.status(200).json([]);
-        return res.status(200).json(dataProducts);
+        try {
+            const { nameProduct } = req.query as { nameProduct?: string };
+            const dataProducts = await ProductModel.find({
+                slug: { $regex: nameProduct ?? '', $options: 'i' },
+            });
+            if (dataProducts.length <= 0) return res.status(200).json([]);
+            return res.status(200).json(dataProducts);
+        } catch (error) {
+            return res.status(500).json({ message: 'Lỗi server!' });
+        }
     }
 }
 

@@ -56,8 +56,9 @@ function DetailProducts(): JSX.Element {
     useEffect(() => {
         const newNameProduct = nameProduct.slice(0, 16);
         request.get<IProduct[]>('/api/similarproduct', { params: { nameProduct: newNameProduct } })
-            .then((res) => setSimilarProduct(res.data));
-    }, [dataProduct, nameProduct]);
+            .then((res) => setSimilarProduct(res.data))
+            .catch(() => {});
+    }, [nameProduct]);
 
     useEffect(() => {
         dataProduct.forEach((item) => setCheckType(item.type === 1 ? 1 : item.type === 2 ? 2 : 3));
