@@ -3,7 +3,7 @@ import styles from '../Styles/Category.module.scss';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import CardBody from '../Components/CardBody';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -59,9 +59,9 @@ function Category(): JSX.Element {
                         <div>
                             <select onChange={(e) => setCheckList(e.target.value)} className="form-select">
                                 <option value="">Chọn Loại Giày</option>
-                                <option value={1}>Giày Nam</option>
-                                <option value={2}>Giày Nữ</option>
-                                <option value={3}>Giày Trẻ Em</option>
+                                <option value="1">Giày Nam</option>
+                                <option value="2">Giày Nữ</option>
+                                <option value="3">Giày Trẻ Em</option>
                             </select>
                         </div>
                     )}

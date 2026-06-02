@@ -112,6 +112,12 @@
         align-items: center;
         gap: 10px;
         border-right: 1px solid #ccc;
+        svg {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            color: #cc1e1e;
+        }
         #info {
             display: flex;
             flex-direction: column;

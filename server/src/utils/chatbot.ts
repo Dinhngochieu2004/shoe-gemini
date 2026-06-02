@@ -18,18 +18,21 @@ const askQuestion = async (question: string): Promise<string> => {
 
         const products: IProductDocument[] = await ProductModel.find({});
 
+        const serverUrl = process.env.SERVER_URL ?? 'http://localhost:5001';
+        const clientUrl = process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000';
+
         const productHTML = products
             .map(
                 (product) => `
             <div style="border: 1px solid #ddd; padding: 12px; margin: 8px 0; border-radius: 6px;">
                 ${product.img && product.img.length > 0
-                        ? `<img src="http://localhost:5001/uploads/${product.img[0]}" alt="${product.name}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 4px;">`
+                        ? `<img src="${serverUrl}/uploads/${product.img[0]}" alt="${product.name}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 4px;">`
                         : ''
                     }
                 <div>
                     <h3 style="font-size: 14px; margin: 4px 0; font-weight: bold;">${product.name}</h3>
                     <p style="margin: 4px 0; font-size: 13px;"><strong>Giá:</strong> ${product.price} VND</p>
-                    <a href="http://localhost:3000/product/${product._id}/${product.slug}" target="_blank" style="color: #007bff; font-size: 13px;">Xem sản phẩm</a>
+                    <a href="${clientUrl}/product/${product._id}/${product.slug}" target="_blank" style="color: #007bff; font-size: 13px;">Xem sản phẩm</a>
                 </div>
             </div>
         `

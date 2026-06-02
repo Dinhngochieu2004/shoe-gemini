@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faMoneyCheckDollar, faPhone } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import cookies from 'js-cookie';
 import { IUser, IPayment } from '../types';
 
 const cx = classNames.bind(styles);
@@ -17,18 +18,13 @@ function InfoUser(): JSX.Element {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (document.cookie) {
+        if (cookies.get('logged') === '1') {
             request.get<IUser>('/api/auth').then((res) => setDataUser(res.data));
+            request.get<IPayment[]>('/api/payments').then((res) => setDataPayments(res.data));
         }
     }, []);
 
     useEffect(() => { window.scrollTo(0, 0); }, []);
-
-    useEffect(() => {
-        if (document.cookie) {
-            request.get<IPayment[]>('/api/payments').then((res) => setDataPayments(res.data));
-        }
-    }, []);
 
     const handleLogOut = (): void => {
         request.post('/api/logout');

@@ -4,7 +4,8 @@ import { IStoreContext } from '../types';
 const Context = createContext<IStoreContext>({
     dataUser: {},
     dataCart: [],
-    getCart: async () => { },
+    isAuthLoading: true,
+    getCart: async () => {},
 });
 
 export default Context;

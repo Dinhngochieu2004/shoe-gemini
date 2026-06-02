@@ -5,7 +5,7 @@ import Footer from '../Components/Footer';
 import request from '../Config/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClose } from '@fortawesome/free-solid-svg-icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -60,10 +60,10 @@ function Cart(): JSX.Element {
                 <div className={cx('inner')}>
                     {dataCart.length > 0 ? (
                         <div>
-                            {dataProducts?.map((item, index) => (
-                                <div key={index} className={cx('cart-products')}>
+                            {dataProducts?.map((item) => (
+                                <div key={item._id} className={cx('cart-products')}>
                                     <div className={cx('img-product')}>
-                                        <img src={`${process.env.REACT_APP_IMG}/${item?.img}`} alt="" />
+                                        <img src={`${process.env.REACT_APP_IMG}/${item?.img}`} alt={item?.nameProduct} />
                                     </div>
                                     <div className={cx('info-product')}>
                                         <h2>{item?.nameProduct}</h2>
@@ -102,8 +102,8 @@ function Cart(): JSX.Element {
                             </table>
                         </div>
                         <div className={cx('btn-total')}>
-                            <button id={cx('btn-buy')}><Link to="#" onClick={nextPage}>Tiến hành thanh toán</Link></button>
-                            <button id={cx('btn-continue')}><Link to={'/category'}>Tiếp tục mua sắm</Link></button>
+                            <button id={cx('btn-buy')} onClick={nextPage}>Tiến hành thanh toán</button>
+                            <button id={cx('btn-continue')} onClick={() => navigate('/category')}>Tiếp tục mua sắm</button>
                         </div>
                     </div>
                 </div>

@@ -19,7 +19,7 @@ function Header(): JSX.Element {
     const [searchValue, setSearchValue] = useState('');
     const [dataSearch, setDataSearch] = useState<IProduct[]>([]);
     const navigate = useNavigate();
-    const { dataUser, dataCart } = useStore();
+    const { dataUser, dataCart, isAuthLoading } = useStore();
     const debounce = useDebounce(searchValue, 500);
 
     useEffect(() => {
@@ -59,7 +59,7 @@ function Header(): JSX.Element {
                                     <Link to={`/product/${item._id}/${item.slug}`} key={item._id}>
                                         <div className={cx('form-result')}>
                                             {dataSearch.length === 1 && item.name === 'Không Tìm Thấy Sản Phẩm !!!' ? (
-                                                <img src={`${item?.img}`} alt="" />
+                                                <img src={`${item?.img[0]}`} alt="" />
                                             ) : (
                                                 <img src={`${process.env.REACT_APP_IMG}/${item?.img[0]}`} alt="" />
                                             )}
@@ -78,12 +78,14 @@ function Header(): JSX.Element {
                         {(dataCart[0]?.products.length ?? 0) > 0 && <span>{dataCart[0]?.products.length}</span>}
                     </div>
                     <div>
-                        {dataUser?._id ? (
+                        {isAuthLoading ? (
+                            <div className={cx('login-btn')} style={{ minWidth: 90, opacity: 0 }}>&nbsp;</div>
+                        ) : dataUser?._id ? (
                             <div className="dropdown">
-                                <button className="btn dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button className="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu tài khoản">
                                     <FontAwesomeIcon icon={faBars} />
                                 </button>
-                                <ul className="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                <ul className="dropdown-menu">
                                     <li><Link className="dropdown-item" to={'/info'}>Thông Tin Người Dùng</Link></li>
                                     {dataUser.isAdmin && (
                                         <li><Link style={{ color: 'red' }} className="dropdown-item" to={'/admin'}>Trang Quản Trị</Link></li>
@@ -121,7 +123,7 @@ function Header(): JSX.Element {
                                     )}
                                     {dataUser?._id && (
                                         <li onClick={handleLogOut}>
-                                            <a style={{ color: 'red', fontWeight: '700' }} className="dropdown-item" href="/#">Đăng Xuất</a>
+                                            <a style={{ color: 'red', fontWeight: 700 }} className="dropdown-item" href="/#">Đăng Xuất</a>
                                         </li>
                                     )}
                                 </ul>

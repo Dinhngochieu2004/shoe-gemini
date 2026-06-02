@@ -104,30 +104,25 @@ const ControllerUser = {
         }
     },
 
-    RefreshToken: async (req: Request, res: Response): Promise<Response> => {
+    RefreshToken: async (req: Request, res: Response): Promise<void> => {
         try {
             const { refreshToken } = req.cookies as { refreshToken?: string };
-            if (!refreshToken) return res.status(401).json('Authentication required');
+            if (!refreshToken) { res.status(401).json('Authentication required'); return; }
 
             const dirtyToken = await redisClient.get(refreshToken);
-            if (dirtyToken) return res.status(401).json('token expired');
+            if (dirtyToken) { res.status(401).json('token expired'); return; }
 
-            // FIX: use readSecret instead of process.env directly
-            jwt.verify(
-                refreshToken,
-                readSecret('jwt_refresh_key', 'JWT_REFRESH_KEY') as string,
-                async (error, decoded) => {
-                    if (error) return res.status(403).json('token không hợp lệ');
-
-                    const newAccessToken = await generateAccessToken(decoded as { email: string; isAdmin: boolean });
-                    await TokenModel.updateOne({ refreshToken }, { $set: { accessToken: newAccessToken } });
-
-                    return res.status(200).json({ accessToken: newAccessToken });
-                }
-            );
-            return res.status(200);
+            const secret = readSecret('jwt_refresh_key', 'JWT_REFRESH_KEY') as string;
+            try {
+                const decoded = jwt.verify(refreshToken, secret) as { email: string; isAdmin: boolean };
+                const newAccessToken = await generateAccessToken(decoded);
+                await TokenModel.updateOne({ refreshToken }, { $set: { accessToken: newAccessToken } });
+                res.status(200).json({ accessToken: newAccessToken });
+            } catch {
+                res.status(403).json('token không hợp lệ');
+            }
         } catch (error) {
-            return res.status(500).json(error);
+            res.status(500).json(error);
         }
     },
 

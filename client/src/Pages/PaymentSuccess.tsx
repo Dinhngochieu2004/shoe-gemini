@@ -4,20 +4,20 @@ import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import { useEffect, useState } from 'react';
 import request from '../Config/api';
+import cookies from 'js-cookie';
 import { IPayment } from '../types';
 
 const cx = classNames.bind(styles);
 
 function PaymentSuccess(): JSX.Element {
     const [dataPayment, setDataPayment] = useState<IPayment[]>([]);
-    const token = document.cookie;
 
     useEffect(() => { window.scrollTo(0, 0); }, []);
 
     useEffect(() => {
-        if (!token) return;
+        if (cookies.get('logged') !== '1') return;
         request.get<IPayment[]>('/api/payment').then((res) => setDataPayment(res.data));
-    }, [token]);
+    }, []);
 
     const now = new Date();
     const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;

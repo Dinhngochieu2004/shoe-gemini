@@ -1,4 +1,5 @@
 import request from '../../Config/api';
+import cookies from 'js-cookie';
 import { IAddToCartParams } from '../../types';
 
 const AddToCartProduct = async (
@@ -6,8 +7,7 @@ const AddToCartProduct = async (
     quantity: number,
     selectSize: string | number
 ): Promise<{ data: { message: string } } | undefined> => {
-    const token = document.cookie;
-    if (!token) return undefined;
+    if (cookies.get('logged') !== '1') return undefined;
 
     try {
         const { img, name, price, type } = props;
@@ -17,7 +17,6 @@ const AddToCartProduct = async (
             priceProduct: price,
             quantityProduct: quantity,
             size: selectSize,
-            sumprice: price * quantity,
             type,
         });
         return res;

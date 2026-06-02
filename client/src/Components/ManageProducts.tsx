@@ -54,7 +54,7 @@ function ManageProducts({ setCheckOpenAddProduct }: ManageProductsProps): JSX.El
                         <tbody>
                             {currentProducts.map((item) => (
                                 <tr key={item._id}>
-                                    <td><img style={{ width: '80px' }} src={`${process.env.REACT_APP_IMG}/${item.img[0]}`} alt="" /></td>
+                                    <td><img style={{ width: '80px' }} src={`${process.env.REACT_APP_IMG}/${item.img[0]}`} alt={item.name} /></td>
                                     <td>{item.name}</td>
                                     <td>{item.type === 1 ? 'Giày Nam' : item.type === 2 ? 'Giày Nữ' : 'Giày Trẻ Em'}</td>
                                     <td>{item.price.toLocaleString()} đ</td>

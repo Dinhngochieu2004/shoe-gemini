@@ -7,6 +7,7 @@ import { IUser, ICart } from '../types';
 export function Provider({ children }: { children: React.ReactNode }) {
     const [dataUser, setDataUser] = useState<IUser | Record<string, never>>({});
     const [dataCart, setDataCart] = useState<ICart[]>([]);
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
 
     const getCart = async (): Promise<void> => {
         const res = await requestGetCart();
@@ -20,19 +21,23 @@ export function Provider({ children }: { children: React.ReactNode }) {
             try {
                 const res = await requestAuth();
                 setDataUser(res);
-            } catch (error) {
-                console.log(error);
+                await getCart();
+            } catch {
+                setDataUser({});
+            } finally {
+                setIsAuthLoading(false);
             }
         };
 
         if (token === '1') {
             fetchData();
-            getCart();
+        } else {
+            setIsAuthLoading(false);
         }
     }, []);
 
     return (
-        <Context.Provider value={{ dataUser, dataCart, getCart }}>
+        <Context.Provider value={{ dataUser, dataCart, isAuthLoading, getCart }}>
             {children}
         </Context.Provider>
     );

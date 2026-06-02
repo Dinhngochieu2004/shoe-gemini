@@ -18,7 +18,7 @@
  * Released under the MIT License
  */
 
-/*! js-cookie v3.0.5 | MIT */
+/*! js-cookie v3.0.7 | MIT */
 
 /**
  * @license React
@@ -71,7 +71,7 @@
  */
 
 /**
- * @remix-run/router v1.16.1
+ * @remix-run/router v1.23.2
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -82,7 +82,7 @@
  */
 
 /**
- * React Router DOM v6.23.1
+ * React Router DOM v6.30.3
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -93,7 +93,7 @@
  */
 
 /**
- * React Router v6.23.1
+ * React Router v6.30.3
  *
  * Copyright (c) Remix Software Inc.
  *

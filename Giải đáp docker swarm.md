@@ -1,151 +1,180 @@
-# 🐳 Docker Swarm — Hướng dẫn deploy lên Production
+# 🐳 Docker Swarm — Hướng Dẫn Deploy Production (Dành Cho Người Mới)
 
-> File này dùng `docker-stack.yml` để deploy lên **server thật**.
+> Dùng `docker-stack.yml` để deploy lên **server thật** với nhiều máy.
 > Khác với `docker-compose.yml` chỉ dùng để chạy thử trên máy cá nhân.
 
 ---
 
-## Docker Swarm là gì?
+## 1. Docker Swarm Là Gì?
 
-Docker Compose chạy trên **1 máy**. Khi máy đó chết → toàn bộ hệ thống sập.
+**Vấn đề của Docker Compose**: Chạy trên **1 máy duy nhất**.
+Nếu máy đó sập → toàn bộ website sập theo.
 
-Docker Swarm cho phép chạy trên **nhiều máy cùng lúc**:
+**Docker Swarm giải quyết điều đó**: Chạy trên **nhiều máy cùng lúc**.
 
 ```
-                    ┌─────────────────┐
-                    │  Manager Node   │  ← điều phối, phân công việc
-                    └────────┬────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-       ┌──────▼──────┐ ┌─────▼──────┐ ┌────▼───────┐
-       │   Worker 1  │ │  Worker 2  │ │  Worker 3  │
-       │  backend    │ │  frontend  │ │  frontend  │
-       └─────────────┘ └────────────┘ └────────────┘
+                 [Manager Node]
+                 Não của cluster
+                 Phân công việc
+                       |
+         +-------------+-------------+
+         |                           |
+   [Worker 1]                  [Worker 2]
+   backend + nginx              frontend + nginx
 ```
 
-- **Manager** — não của cluster, quyết định container nào chạy ở đâu
-- **Worker** — máy phụ, chỉ chạy container theo lệnh Manager
-- Nếu Worker 2 chết → Swarm tự chuyển container sang Worker 3 → **không downtime**
+- **Manager Node** — Nhận lệnh deploy, phân công container về các máy
+- **Worker Node** — Chạy container theo lệnh Manager
+- Nếu Worker 1 chết → Swarm tự chuyển container sang Worker 2 → **không downtime**
 
 ---
 
-## Hệ thống trong dự án này
+## 2. Tại Sao Cần Swarm Cho Production?
+
+| Tình huống | Docker Compose | Docker Swarm |
+|-----------|---------------|-------------|
+| Máy chủ chết đột ngột | Toàn bộ sập | Tự chuyển sang máy khác |
+| Deploy version mới | Phải down rồi up lại (có downtime) | Rolling update — không downtime |
+| Lưu mật khẩu, API key | Lưu trong file `.env` (kém bảo mật) | Mã hóa AES-256, chỉ giải mã trong RAM |
+| Tăng số lượng server | Phải làm thủ công | 1 lệnh scale |
+
+---
+
+## 3. Hệ Thống Dự Án Này Trong Swarm
 
 ```
 Internet
-    │
-    ▼
- Nginx (mode: global — chạy trên mọi node)
-    │
-    ├── /           → Frontend  (2 replicas, mỗi node 1 cái)
-    ├── /api/       → Backend   (1 replica, cố định trên node có uploads)
-    ├── /chat       → Backend
-    └── /uploads/   → Backend
+    |
+    v
+[Nginx — mode: global]     <- Chạy trên TẤT CẢ các node
+    |
+    |-- /           --> [Frontend x2 replicas]
+    |-- /api/       --> [Backend x1 replica]
+    |-- /chat       --> [Backend x1 replica]
+    |-- /uploads/   --> [Backend x1 replica]
+    |
+    |-- HTTPS      --> [Certbot — tự renew 90 ngày]
 ```
 
-| Service    | Replicas | Ghi chú |
-|------------|----------|---------|
-| `backend`  | 1        | Cố định trên node có volume uploads |
-| `frontend` | 2        | Mỗi node 1 replica, tự động HA |
-| `nginx`    | global   | Chạy trên tất cả node |
+| Service | Số lượng | Lý do |
+|---------|---------|-------|
+| `nginx` | global (1 per node) | Mọi node đều cần nhận traffic |
+| `frontend` | 2 replicas | Tự động HA, mỗi node 1 cái |
+| `backend` | 1 replica | Ảnh upload lưu local volume trên 1 node cố định |
+| `certbot` | 1 replica (manager) | Chỉ cần renew SSL 1 lần |
 
 > **Tại sao backend chỉ 1 replica?**
-> Vì ảnh sản phẩm được lưu vào volume local trên 1 node. Nếu chạy 2 replica trên 2 node khác nhau, node kia sẽ không có ảnh → lỗi.
+> Ảnh sản phẩm lưu vào `uploads-data` volume trên 1 node. Nếu backend chạy trên 2 node khác nhau, node kia không có ảnh → vỡ ảnh.
+> Giải pháp tương lai: migrate lưu ảnh lên S3/Cloudflare R2 → có thể scale backend tự do.
 
 ---
 
-## Bước 1 — Khởi tạo Swarm
+## 4. Các Bước Triển Khai
 
-Chạy trên **Manager node**:
+### Bước 1 — Khởi Tạo Swarm Trên Manager Node
+
+Đăng nhập vào máy Manager, chạy:
 
 ```bash
-docker swarm init --advertise-addr <IP_của_máy>
+docker swarm init --advertise-addr <IP_của_máy_Manager>
 ```
 
-Lệnh này in ra token để thêm worker. Ví dụ:
+Ví dụ:
+
+```bash
+docker swarm init --advertise-addr 192.168.1.10
+```
+
+Lệnh này in ra token để thêm worker. **Lưu lại token này**:
 
 ```
 To add a worker to this swarm, run the following command:
-    docker swarm join --token SWMTKN-1-xxx... 192.168.1.10:2377
-```
-
-Lưu token đó lại.
-
-### Thêm Worker vào cluster
-
-Chạy lệnh trên từng **Worker node**:
-
-```bash
-docker swarm join --token SWMTKN-1-xxx... <IP_Manager>:2377
-```
-
-Kiểm tra cluster:
-
-```bash
-docker node ls
-```
-
-```
-ID          HOSTNAME    STATUS    AVAILABILITY   MANAGER STATUS
-abc123 *    manager-1   Ready     Active         Leader
-def456      worker-1    Ready     Active
-ghi789      worker-2    Ready     Active
+    docker swarm join --token SWMTKN-1-5o5j8... 192.168.1.10:2377
 ```
 
 ---
 
-## Bước 2 — Label node chứa uploads
+### Bước 2 — Thêm Worker Node Vào Cluster
 
-Backend cần chạy cố định trên node có volume uploads. Cần label node đó:
+Trên từng máy Worker, chạy lệnh vừa copy ở trên:
 
 ```bash
-# Xem ID của worker node
+docker swarm join --token SWMTKN-1-5o5j8... 192.168.1.10:2377
+```
+
+Kiểm tra trên Manager:
+
+```bash
+docker node ls
+```
+
+```
+ID           HOSTNAME    STATUS   AVAILABILITY   MANAGER STATUS
+abc123  *    manager-1   Ready    Active         Leader
+def456       worker-1    Ready    Active
+ghi789       worker-2    Ready    Active
+```
+
+Dấu `*` = node bạn đang đứng. `Leader` = Manager.
+
+---
+
+### Bước 3 — Gán Label Cho Node Chứa Uploads
+
+Backend phải chạy cố định trên node có volume ảnh. Gán label cho đúng node đó:
+
+```bash
+# Xem ID của worker node muốn gán
 docker node ls
 
-# Gán label
+# Gán label "uploads=true" cho worker đó
 docker node update --label-add uploads=true <worker-node-id>
 ```
 
+Ví dụ:
+
+```bash
+docker node update --label-add uploads=true def456
+```
+
 ---
 
-## Bước 3 — Tạo Secrets
+### Bước 4 — Tạo Secrets (Thông Tin Bí Mật)
 
-Secret là cách Swarm lưu thông tin nhạy cảm (mật khẩu, API key) một cách bảo mật.
-
-- Dữ liệu được **mã hóa AES-256** khi lưu
-- Chỉ được giải mã trong RAM của container khi cần dùng
-- Không bao giờ ghi ra disk
+**Secret là gì?**
+- Thay vì lưu mật khẩu trong file `.env` (dễ bị lộ), Swarm lưu vào **Secret**
+- Dữ liệu được **mã hóa AES-256** khi lưu trên disk
+- Chỉ giải mã trong **RAM** của container khi cần dùng
 - Container đọc từ `/run/secrets/<tên_secret>`
 
-Tạo toàn bộ secrets cho dự án:
+Tạo toàn bộ secrets (chạy trên Manager):
 
 ```bash
 # Database
-echo "mongodb://smartphone:..." | docker secret create mongo_uri -
-echo "redis://default:..."      | docker secret create redis_uri -
+echo "mongodb+srv://user:pass@cluster.mongodb.net/shoe" | docker secret create mongo_uri -
+echo "redis://default:pass@redis-host:port"             | docker secret create redis_uri -
 
 # JWT
-echo "hieu-access-key"  | docker secret create jwt_access_key -
-echo "hieu-refresh-key" | docker secret create jwt_refresh_key -
+echo "your-access-secret-key"   | docker secret create jwt_access_key -
+echo "your-refresh-secret-key"  | docker secret create jwt_refresh_key -
 
 # MoMo
-echo "F8BBA842ECF85"    | docker secret create momo_access_key -
-echo "K951B6PE1w..."    | docker secret create momo_secret_key -
+echo "your-momo-access-key"     | docker secret create momo_access_key -
+echo "your-momo-secret-key"     | docker secret create momo_secret_key -
 
 # VNPay
-echo "DH2F13SW"         | docker secret create vnpay_tmn_code -
-echo "NXZM3DWF..."      | docker secret create vnpay_secure_secret -
+echo "your-vnpay-code"          | docker secret create vnpay_tmn_code -
+echo "your-vnpay-secret"        | docker secret create vnpay_secure_secret -
 
 # Gemini AI
-echo "AIzaSyB9W6..."    | docker secret create gemini_api_key -
+echo "your-gemini-api-key"      | docker secret create gemini_api_key -
 
 # Email
-echo "your@gmail.com"   | docker secret create email_user -
-echo "client-id"        | docker secret create email_client_id -
-echo "client-secret"    | docker secret create email_client_secret -
-echo "redirect-uri"     | docker secret create email_redirect_uri -
-echo "refresh-token"    | docker secret create email_refresh_token -
+echo "your@gmail.com"           | docker secret create email_user -
+echo "your-client-id"           | docker secret create email_client_id -
+echo "your-client-secret"       | docker secret create email_client_secret -
+echo "your-redirect-uri"        | docker secret create email_redirect_uri -
+echo "your-refresh-token"       | docker secret create email_refresh_token -
 ```
 
 Kiểm tra:
@@ -154,25 +183,55 @@ Kiểm tra:
 docker secret ls
 ```
 
+> **Lưu ý**: Dấu `-` ở cuối lệnh có nghĩa "đọc input từ stdin (pipe)". Cách này tránh lộ giá trị trong lịch sử lệnh shell.
+
 ---
 
-## Bước 4 — Copy file cấu hình lên Manager
+### Bước 5 — Lấy SSL Certificate (Lần Đầu)
+
+Trước khi deploy stack, cần có certificate SSL cho domain. Chạy certbot thủ công lần đầu:
 
 ```bash
-scp docker-stack.yml     user@manager-host:/opt/shoe-gemini/
-scp nginx/default.conf   user@manager-host:/opt/shoe-gemini/nginx/
+# Tạm thời chạy nginx để certbot verify domain
+docker run --rm \
+  -p 80:80 \
+  -v certbot-certs:/etc/letsencrypt \
+  -v certbot-www:/var/www/certbot \
+  certbot/certbot:v2.11.0 certonly \
+  --standalone \
+  -d giaythethao.click \
+  -d www.giaythethao.click \
+  --email your@email.com \
+  --agree-tos \
+  --no-eff-email
+```
+
+Sau khi có cert, Swarm sẽ tự renew mỗi 12h.
+
+---
+
+### Bước 6 — Copy File Lên Manager
+
+```bash
+scp docker-stack.yml      user@manager-ip:/opt/shoe-gemini/
+scp nginx/nginx-ssl.conf  user@manager-ip:/opt/shoe-gemini/nginx/
 ```
 
 ---
 
-## Bước 5 — Deploy
+### Bước 7 — Deploy Stack
 
 ```bash
-docker stack deploy -c docker-stack.yml shoe-gemini --with-registry-auth
+cd /opt/shoe-gemini
+
+docker stack deploy \
+  -c docker-stack.yml \
+  shoe-gemini \
+  --with-registry-auth
 ```
 
-- `shoe-gemini` — tên stack, các service sẽ có tên dạng `shoe-gemini_backend`, `shoe-gemini_frontend`...
-- `--with-registry-auth` — truyền credentials Docker Hub để worker có thể pull image private
+- `shoe-gemini` = tên stack. Các service sẽ có prefix này: `shoe-gemini_backend`, `shoe-gemini_frontend`...
+- `--with-registry-auth` = gửi Docker Hub credentials để Worker nodes có thể pull private image
 
 Kiểm tra:
 
@@ -181,41 +240,46 @@ docker service ls
 ```
 
 ```
-NAME                    MODE        REPLICAS   IMAGE
-shoe-gemini_backend     replicated  1/1        shoe-gemini-backend:latest
-shoe-gemini_frontend    replicated  2/2        shoe-gemini-frontend:latest
-shoe-gemini_nginx       global      2/2        nginx:stable-alpine
+NAME                     MODE        REPLICAS   IMAGE
+shoe-gemini_backend      replicated  1/1        .../shoe-gemini-backend:latest
+shoe-gemini_frontend     replicated  2/2        .../shoe-gemini-frontend:latest
+shoe-gemini_nginx        global      2/2        nginx:1.27.0-alpine3.19
+shoe-gemini_certbot      replicated  1/1        certbot/certbot:v2.11.0
 ```
 
 Cột `REPLICAS` hiện đúng số → thành công ✅
 
 ---
 
-## Giải thích file `docker-stack.yml`
+## 5. Giải Thích File `docker-stack.yml`
 
 ### Backend
 
 ```yaml
 backend:
+  image: dinhngochieu3112004/shoe-gemini-backend:latest
   environment:
-    - REACT_APP_URL=https://giaythethao.click  # non-sensitive → dùng environment
+    - PORT=5001
+    - SERVER_URL=https://giaythethao.click     # Non-sensitive → dùng environment thường
+    - REACT_APP_URL=https://giaythethao.click
   secrets:
-    - mongo_uri       # sensitive → dùng secret, mount vào /run/secrets/mongo_uri
+    - mongo_uri        # Sensitive → dùng secret, mount vào /run/secrets/mongo_uri
     - jwt_access_key
     - ...
   volumes:
-    - uploads-data:/app/dist/uploads  # giữ ảnh khi container restart
+    - uploads-data:/app/dist/uploads  # Giữ ảnh khi container restart
   deploy:
     replicas: 1
     placement:
       constraints:
         - node.role == worker
-        - node.labels.uploads == true   # chỉ chạy trên node được label
+        - node.labels.uploads == true   # Chỉ chạy trên node được gán label ở Bước 3
     update_config:
-      order: start-first        # bản mới lên trước, bản cũ mới tắt → không downtime
-      failure_action: rollback  # deploy lỗi → tự rollback về version cũ
-    rollback_config:
-      order: start-first
+      order: start-first        # Bản mới khởi động trước, bản cũ tắt sau → không downtime
+      failure_action: rollback  # Deploy lỗi → tự động rollback về version cũ
+    restart_policy:
+      condition: on-failure
+      max_attempts: 3           # Thử lại tối đa 3 lần nếu crash
 ```
 
 ### Frontend
@@ -225,10 +289,9 @@ frontend:
   deploy:
     replicas: 2
     placement:
-      max_replicas_per_node: 1  # mỗi node tối đa 1 replica → đảm bảo HA
+      max_replicas_per_node: 1  # Mỗi node tối đa 1 replica → Worker 1 chết, còn Worker 2
     update_config:
-      order: start-first
-      failure_action: rollback
+      order: start-first        # Rolling update không downtime
 ```
 
 ### Nginx
@@ -236,8 +299,8 @@ frontend:
 ```yaml
 nginx:
   deploy:
-    mode: global   # chạy đúng 1 container trên MỖI node
-                   # thêm node mới → nginx tự chạy trên node đó
+    mode: global   # Chạy đúng 1 container trên MỖI node
+                   # Thêm node mới → nginx tự chạy trên đó
 ```
 
 ### Network
@@ -245,24 +308,43 @@ nginx:
 ```yaml
 networks:
   mern-stack-net:
-    driver: overlay          # cho phép container trên các node khác nhau giao tiếp
+    driver: overlay          # Overlay network — container trên các máy khác nhau giao tiếp được
     driver_opts:
-      encrypted: "true"      # mã hóa traffic giữa các node
+      encrypted: "true"      # Mã hóa traffic giữa các node (TLS)
 ```
+
+### Certbot (Auto-renew SSL)
+
+```yaml
+certbot:
+  command: >
+    sh -c "trap exit TERM;
+           while :; do
+             certbot renew --webroot --quiet;
+             sleep 12h & wait $${!};
+           done"
+  deploy:
+    placement:
+      constraints:
+        - node.role == manager  # Chạy trên Manager node
+```
+
+Certificate Let's Encrypt có hạn 90 ngày. Certbot renew mỗi 12h, tự gia hạn khi còn 30 ngày.
 
 ---
 
-## Các lệnh hay dùng
+## 6. Các Lệnh Hay Dùng Sau Khi Deploy
 
-### Xem trạng thái
+### Xem Trạng Thái
 
 ```bash
-docker service ls                              # xem tất cả service
-docker service ps shoe-gemini_backend          # xem replica đang chạy ở node nào
-docker service logs shoe-gemini_backend -f     # xem log realtime
+docker service ls                               # Xem tất cả service
+docker service ps shoe-gemini_backend           # Replica đang chạy ở node nào
+docker service logs shoe-gemini_backend -f      # Xem log realtime
+docker service inspect shoe-gemini_backend      # Xem cấu hình chi tiết
 ```
 
-### Update image mới
+### Cập Nhật Image Mới
 
 ```bash
 docker service update \
@@ -270,21 +352,21 @@ docker service update \
   shoe-gemini_backend
 ```
 
-Swarm sẽ tự động rolling update — bản mới lên trước, bản cũ tắt sau, không downtime.
+Swarm tự rolling update — bản mới lên trước, bản cũ tắt sau. Không downtime.
 
-### Scale service
+### Scale Service
 
 ```bash
 docker service scale shoe-gemini_frontend=3
 ```
 
-### Rollback thủ công
+### Rollback Thủ Công
 
 ```bash
 docker service rollback shoe-gemini_backend
 ```
 
-### Xóa toàn bộ stack
+### Xóa Toàn Bộ Stack
 
 ```bash
 docker stack rm shoe-gemini
@@ -292,7 +374,7 @@ docker stack rm shoe-gemini
 
 ---
 
-## Xử lý lỗi thường gặp
+## 7. Xử Lý Lỗi Thường Gặp
 
 ### Service không đủ replica (`0/1` hoặc `0/2`)
 
@@ -300,11 +382,14 @@ docker stack rm shoe-gemini
 docker service ps shoe-gemini_backend --no-trunc
 ```
 
-Cột `ERROR` sẽ hiện lý do. Thường gặp:
+Cột `ERROR` sẽ hiện lý do cụ thể:
 
-- **"secret not found"** → chưa tạo secret, chạy lại Bước 3
-- **"no suitable node"** → không có node nào thỏa placement constraint, kiểm tra label node
-- **"pull access denied"** → image private, thêm `--with-registry-auth` khi deploy
+| Lỗi | Nguyên nhân | Cách sửa |
+|-----|------------|---------|
+| `secret not found` | Chưa tạo secret | Chạy lại Bước 4 |
+| `no suitable node` | Không node nào thỏa constraint | Kiểm tra label node (Bước 3) |
+| `pull access denied` | Không pull được image | Thêm `--with-registry-auth` khi deploy |
+| `port already in use` | Port 80/443 bị chiếm | Tắt nginx/apache trên host |
 
 ### Backend crash liên tục
 
@@ -312,31 +397,50 @@ Cột `ERROR` sẽ hiện lý do. Thường gặp:
 docker service logs shoe-gemini_backend --tail=50
 ```
 
-Thường do sai connection string Atlas hoặc Redis trong secret.
+Thường do sai connection string trong secret. Kiểm tra lại giá trị secret:
+
+```bash
+# Không thể xem giá trị secret trực tiếp — đây là tính năng bảo mật
+# Phải xóa rồi tạo lại:
+docker secret rm mongo_uri
+echo "mongodb+srv://..." | docker secret create mongo_uri -
+docker service update --force shoe-gemini_backend
+```
 
 ### Nginx 502 sau khi deploy
 
-Backend chưa healthy. Đợi 20-30 giây rồi thử lại. Nếu vẫn lỗi:
+Backend chưa healthy. Đợi 20-30 giây rồi thử lại:
 
 ```bash
 docker service ps shoe-gemini_backend
-docker service logs shoe-gemini_backend
+docker service logs shoe-gemini_backend --tail=30
+```
+
+### SSL không hoạt động (ERR_SSL_PROTOCOL_ERROR)
+
+Certificate chưa có hoặc đặt sai path. Kiểm tra:
+
+```bash
+docker service logs shoe-gemini_certbot --tail=20
 ```
 
 ---
 
-## So sánh Docker Compose vs Docker Swarm
+## 8. So Sánh Docker Compose vs Docker Swarm
 
 | | Docker Compose | Docker Swarm |
-|--|----------------|--------------|
+|--|----------------|-------------|
 | Dùng cho | Dev, test local | Production |
 | Số máy | 1 máy | Nhiều máy |
-| Khi 1 máy chết | Toàn bộ sập | Tự chuyển sang máy khác |
-| Secrets | Dùng `.env` file | Mã hóa AES-256 |
-| Update | Phải down rồi up lại | Rolling update, không downtime |
-| Lệnh | `docker compose up` | `docker stack deploy` |
+| Khi máy chết | Toàn bộ sập | Tự chuyển sang máy khác |
+| Secrets | File `.env` | Mã hóa AES-256 |
+| Deploy version mới | Down → Up (downtime) | Rolling update, không downtime |
+| Tự scale | Không | `docker service scale` |
+| Lệnh chạy | `docker compose up` | `docker stack deploy` |
+| File config | `docker-compose.yml` | `docker-stack.yml` |
 
 ---
 
-> Muốn thêm HTTPS (port 443) → cần cấu hình TLS certificate trong Nginx hoặc dùng Traefik.
-> Muốn scale backend lên nhiều replica → cần migrate lưu ảnh sang object storage (S3, MinIO, Cloudflare R2) thay vì local volume.
+> **Bước tiếp theo khi muốn scale backend lên nhiều replica:**
+> Migrate lưu ảnh từ local volume sang object storage (AWS S3, Cloudflare R2, MinIO).
+> Khi đó backend không còn phụ thuộc vào 1 node cụ thể nữa.

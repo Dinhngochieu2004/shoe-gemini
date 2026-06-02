@@ -21,7 +21,7 @@ function CardBody({ item }: CardBodyProps): JSX.Element {
     return (
         <div className={cx('wrapper')}>
             <div className={cx('img')}>
-                <img src={`${process.env.REACT_APP_IMG}/${item?.img[0]}`} alt="" />
+                <img src={`${process.env.REACT_APP_IMG}/${item?.img[0]}`} alt={item?.name} />
                 <div className={cx('container')}>
                     <button onClick={() => setShow(true)} data-testid="card-add-to-cart">
                         <FontAwesomeIcon icon={faCartPlus} />

@@ -63,7 +63,7 @@ function ModalDetailProduct({ id, show, setShow }: ModalDetailProductProps): JSX
                 {dataProduct.map((item) => (
                     <Modal.Body key={item._id} className={cx('modal-body')}>
                         <div className={cx('img')}>
-                            <img src={`${process.env.REACT_APP_IMG}/${item.img[0]}`} alt="" />
+                            <img src={`${process.env.REACT_APP_IMG}/${item.img[0]}`} alt={item.name} />
                         </div>
                         <div className={cx('content')}>
                             <h2>{item.name}</h2>

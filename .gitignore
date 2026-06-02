@@ -1,2 +1,3 @@
-.amazonq/
-aidlc-docs/
+.claude
+.aidlc-rule-details/
+aidlc-docs

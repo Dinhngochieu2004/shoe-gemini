@@ -2,10 +2,10 @@ import classNames from 'classnames/bind';
 import styles from '../Styles/Payments.module.scss';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
-import axios from 'axios';
 import request, { requestPaymentVNPAY, requestUpdateInfoCart } from '../Config/api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
@@ -142,8 +142,8 @@ function Payments(): JSX.Element {
                         <div className={cx('img-product')}>
                             <h4>SẢN PHẨM ĐÃ ĐẶT HÀNG</h4>
                             <div className={cx('img')}>
-                                {dataProducts?.map((item, i) => (
-                                    <img key={i} src={`${process.env.REACT_APP_IMG}/${item.img}`} alt={item.nameProduct} />
+                                {dataProducts?.map((item) => (
+                                    <img key={item._id} src={`${process.env.REACT_APP_IMG}/${item.img}`} alt={item.nameProduct} />
                                 ))}
                             </div>
                         </div>

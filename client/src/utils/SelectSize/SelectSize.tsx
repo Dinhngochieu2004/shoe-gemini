@@ -15,16 +15,16 @@ function SelectSize({ dataProduct, show, setShow }: SelectSizeProps): JSX.Elemen
 
     return (
         <Modal show={show} onHide={handleClose}>
-            {dataProduct.map((item, index) => (
-                <div key={index}>
+            {dataProduct.map((item) => (
+                <div key={item._id}>
                     {item.type === 1 || item.type === 2 ? (
                         <div style={{ width: '500px' }}>
-                            <img style={{ width: '100%' }} src={selectSizeName} alt="Size guide" />
-                            <img style={{ width: '100%' }} src={selectSizeName1} alt="Size guide" />
+                            <img style={{ width: '100%' }} src={selectSizeName} alt="Bảng hướng dẫn chọn size" />
+                            <img style={{ width: '100%' }} src={selectSizeName1} alt="Bảng hướng dẫn chọn size 2" />
                         </div>
                     ) : (
                         <div style={{ width: '500px' }}>
-                            <img style={{ width: '100%' }} src={imgSelectSize} alt="Size guide kids" />
+                            <img style={{ width: '100%' }} src={imgSelectSize} alt="Bảng size trẻ em" />
                         </div>
                     )}
                 </div>

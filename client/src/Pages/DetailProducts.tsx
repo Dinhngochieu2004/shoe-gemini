@@ -12,10 +12,10 @@ import CardBody from '../Components/CardBody';
 import Slider from 'react-slick';
 import SelectSize from '../utils/SelectSize/SelectSize';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAngleLeft, faAngleRight, faRulerHorizontal } from '@fortawesome/free-solid-svg-icons';
+import { faAngleLeft, faAngleRight, faRulerHorizontal, faTruck, faShield, faMoneyBillWave, faPhone } from '@fortawesome/free-solid-svg-icons';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
-import { IProduct, ICart } from '../types';
+import { IProduct } from '../types';
 
 const cx = classNames.bind(styles);
 
@@ -51,16 +51,7 @@ function DetailProducts(): JSX.Element {
     const [checkType, setCheckType] = useState(0);
     const [show, setShow] = useState(false);
     const [similarProduct, setSimilarProduct] = useState<IProduct[]>([]);
-    const { getCart, dataUser } = useStore();
-
-    useEffect(() => {
-        if (!dataUser._id) return;
-        request.get<ICart[]>('/api/cart').then((res) => {
-            res.data.forEach((item) => setLengthCart(item.products.length));
-        });
-    }, [dataUser]);
-
-    const [, setLengthCart] = useState(0);
+    const { getCart } = useStore();
 
     useEffect(() => {
         const newNameProduct = nameProduct.slice(0, 16);
@@ -92,6 +83,11 @@ function DetailProducts(): JSX.Element {
         }
     };
 
+    const onPrevImg = (): void => {
+        if (!dataProduct[0]) return;
+        setSelectImg((prev) => (prev > 0 ? prev - 1 : dataProduct[0].img.length - 1));
+    };
+
     const onNextImg = (): void => {
         if (!dataProduct[0]) return;
         setSelectImg((prev) => (prev < dataProduct[0].img.length - 1 ? prev + 1 : 0));
@@ -113,12 +109,12 @@ function DetailProducts(): JSX.Element {
                                         className={cx({ active: index === selectImg })}
                                         onClick={() => setSelectImg(index)}
                                         src={`${process.env.REACT_APP_IMG}/${img}`}
-                                        alt=""
+                                        alt={`${item.name} - ảnh ${index + 1}`}
                                     />
                                 ))}
                             </div>
-                            <img className={cx('img')} src={`${process.env.REACT_APP_IMG}/${item.img[selectImg]}`} alt="" />
-                            <button onClick={onNextImg} id={cx('btn-1')}><FontAwesomeIcon icon={faAngleLeft} /></button>
+                            <img className={cx('img')} src={`${process.env.REACT_APP_IMG}/${item.img[selectImg]}`} alt={item.name} />
+                            <button onClick={onPrevImg} id={cx('btn-1')}><FontAwesomeIcon icon={faAngleLeft} /></button>
                             <button onClick={onNextImg} id={cx('btn-2')}><FontAwesomeIcon icon={faAngleRight} /></button>
                         </div>
                         <div className={cx('info-product')}>
@@ -150,13 +146,13 @@ function DetailProducts(): JSX.Element {
                             </div>
                             <div className={cx('container')}>
                                 {[
-                                    { src: 'https://i0.wp.com/peaksport.vn/wp-content/uploads/2023/11/icon-3.png?resize=40%2C41&ssl=1', title: 'Miễn phí vận chuyển', sub: 'Cho đơn hàng từ 800k' },
-                                    { src: 'https://i0.wp.com/peaksport.vn/wp-content/uploads/2023/11/icon.png?resize=40%2C41&ssl=1', title: 'Bảo hành 6 tháng', sub: '15 ngày đổi trả' },
-                                    { src: 'https://i0.wp.com/peaksport.vn/wp-content/uploads/2023/11/icon-1-1.png?resize=40%2C41&ssl=1', title: 'Thanh toán COD', sub: 'Yên tâm mua sắm' },
-                                    { src: 'https://i0.wp.com/peaksport.vn/wp-content/uploads/2023/11/icon-2-1.png?resize=40%2C41&ssl=1', title: 'Hotline: 0866550286', sub: 'Hỗ trợ bạn 24/7' },
+                                    { icon: faTruck,         title: 'Miễn phí vận chuyển', sub: 'Cho đơn hàng từ 800k' },
+                                    { icon: faShield,        title: 'Bảo hành 6 tháng',    sub: '15 ngày đổi trả' },
+                                    { icon: faMoneyBillWave, title: 'Thanh toán COD',       sub: 'Yên tâm mua sắm' },
+                                    { icon: faPhone,         title: 'Hotline: 0866550286',  sub: 'Hỗ trợ bạn 24/7' },
                                 ].map((box, i) => (
                                     <div key={i} className={cx('box')}>
-                                        <img src={box.src} alt="" />
+                                        <FontAwesomeIcon icon={box.icon} />
                                         <div id={cx('info')}>
                                             <span style={{ fontWeight: '800' }}>{box.title}</span>
                                             <span>{box.sub}</span>

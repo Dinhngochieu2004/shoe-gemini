@@ -77,7 +77,7 @@ function LoginUser(): JSX.Element {
                                     <input type="checkbox" />
                                     <label>Duy trì đăng nhập</label>
                                 </div>
-                                <Link to={'/forgotPassword'}>Quên mật khẩu?</Link>
+                                <Link to="/forgotpassword">Quên mật khẩu?</Link>
                             </div>
                         </div>
                         <div className={cx('login-footer')}>

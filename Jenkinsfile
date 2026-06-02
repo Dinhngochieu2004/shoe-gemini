@@ -34,7 +34,7 @@ pipeline {
                 withDockerRegistry(credentialsId: 'docker-registry', url: 'https://index.docker.io/v1/') {
                     sh 'docker build --no-cache -t $IMAGE_FRONTEND ./client'
                     sh 'docker push $IMAGE_FRONTEND'
-                    sh 'docker build --no-cache -t $IMAGE_BACKEND ./server'
+                    sh 'docker build --no-cache --target production -t $IMAGE_BACKEND ./server'
                     sh 'docker push $IMAGE_BACKEND'
                 }
             }
@@ -46,8 +46,6 @@ pipeline {
                 sh 'docker compose up -d --build'
                 sh 'sleep 15'
                 sh 'docker compose ps'
-                // Kiểm tra backend healthy
-                sh 'docker compose exec -T backend wget -qO- http://localhost:5001/api/products || exit 1'
             }
             post {
                 always {

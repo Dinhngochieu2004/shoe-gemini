@@ -3,17 +3,18 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+      target: dev
     restart: unless-stopped
-    ports:
-      - "5001:5001"
     env_file:
       - ./server/.env
-    environment:
-      - REACT_APP_URL=http://localhost
     volumes:
-      - ./server/src/uploads:/app/dist/uploads
+      - ./server/src:/app/src              # hot-reload: nodemon watch source từ host
+      - uploads-data:/app/src/uploads      # persist uploads, mount sau để override src/uploads
+      - /app/node_modules                  # giữ node_modules trong container, không bị host override
     networks:
       - mern-network
+    expose:
+      - "5001"
 
   frontend:
     build:
@@ -24,7 +25,7 @@ services:
       - mern-network
 
   nginx:
-    image: nginx:stable-alpine
+    image: nginx:1.27.0-alpine3.19
     ports:
       - "80:80"
     volumes:
@@ -32,9 +33,13 @@ services:
     depends_on:
       - frontend
       - backend
+    restart: unless-stopped
     networks:
       - mern-network
 
 networks:
   mern-network:
     driver: bridge
+
+volumes:
+  uploads-data:
