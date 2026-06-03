@@ -12,6 +12,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline --loglevel error --no-fund --no-audit
 COPY . .
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /app/src/uploads \
     && chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 5001
