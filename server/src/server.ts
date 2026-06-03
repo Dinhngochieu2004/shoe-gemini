@@ -34,6 +34,9 @@ const io = new SocketIOServer(server, {
     },
 });
 
+// ─── Trust Proxy (nginx sits in front) ───────────────────────────────────────
+app.set('trust proxy', 1);
+
 // ─── Security Middleware (first) ─────────────────────────────────────────────
 app.use(helmetMiddleware);
 app.use(generalRateLimit);
