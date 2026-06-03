@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { Request, Response } from 'express';
 import UserModel from '../models/User';
 import TokenModel from '../models/Token';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { jwtDecode } from 'jwt-decode';
 import PaymentModel from '../models/Payment';
@@ -92,8 +92,8 @@ const ControllerUser = {
 
             res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
-                secure: true,
-                sameSite: 'strict',
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
                 maxAge: 7 * 24 * 60 * 60 * 1000,
             });
 

@@ -5,7 +5,7 @@ import CartModel from '../models/Cart';
 import PaymentModel from '../models/Payment';
 import UserModel from '../models/User';
 import sendMailOrder from '../SendMail/SendMailOrder';
-import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat, HashAlgorithm } from 'vnpay';
+import { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat, HashAlgorithm, ReturnQueryFromVNPay } from 'vnpay';
 import readSecret from '../utils/secret';
 
 class ControllerPayments {
@@ -98,20 +98,27 @@ class ControllerPayments {
     }
 
     async checkPaymentVnpay(req: Request, res: Response): Promise<void> {
+        const redirectPayments = `${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost'}/payments`;
+        const redirectSuccess = `${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost'}/paymentsuccess`;
         try {
-            const { vnp_ResponseCode, vnp_OrderInfo } = req.query as {
-                vnp_ResponseCode?: string;
-                vnp_OrderInfo?: string;
-            };
+            const vnpay = new VNPay({
+                tmnCode: readSecret('vnpay_tmn_code', 'VNPAY_TMN_CODE') as string,
+                secureSecret: readSecret('vnpay_secure_secret', 'VNPAY_SECURE_SECRET') as string,
+                vnpayHost: 'https://sandbox.vnpayment.vn',
+                testMode: true,
+                hashAlgorithm: 'SHA512' as HashAlgorithm,
+                loggerFn: ignoreLogger,
+            });
 
-            if (vnp_ResponseCode !== '00' || !vnp_OrderInfo) {
-                res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/payments`);
+            const verify = vnpay.verifyReturnUrl(req.query as unknown as ReturnQueryFromVNPay);
+            if (!verify.isSuccess || !verify.vnp_OrderInfo) {
+                res.redirect(redirectPayments);
                 return;
             }
 
-            const findCart = await CartModel.findOne({ _id: vnp_OrderInfo });
+            const findCart = await CartModel.findOne({ _id: verify.vnp_OrderInfo });
             if (!findCart) {
-                res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/payments`);
+                res.redirect(redirectPayments);
                 return;
             }
 
@@ -128,10 +135,10 @@ class ControllerPayments {
             await sendMailOrder(findCart.user);
             await newPayment.save();
             await findCart.deleteOne();
-            res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/paymentsuccess`);
+            res.redirect(redirectSuccess);
         } catch (error) {
             console.error(`[${new Date().toISOString()}] checkPaymentVnpay error:`, error);
-            res.redirect(`${process.env.REACT_APP_URL_DOMAIN ?? 'http://localhost:3000'}/payments`);
+            res.redirect(redirectPayments);
         }
     }
 
@@ -195,6 +202,7 @@ class ControllerPayments {
         try {
             const email = req.user!.email;
             const data = await PaymentModel.findOne({ user: email }).sort({ _id: 'desc' });
+            if (!data) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
             return res.status(200).json([data]);
         } catch (error) {
             return res.status(500).json({ message: 'Internal Server Error' });
@@ -232,7 +240,7 @@ class ControllerPayments {
                 tinhtrang: false,
                 trangthai: false,
                 user: email,
-                address: (req.body as { address: string }).address,
+                address: cart.address,
                 phone: cart.phone,
                 username: dataUser?.fullname ?? '',
             });
@@ -259,9 +267,9 @@ class ControllerPayments {
 
     async GetOrderUser(req: Request, res: Response): Promise<Response> {
         try {
-            const data = await PaymentModel.find({});
-            const newData = data.map((item) => item.products);
-            return res.status(200).json(newData);
+            const email = req.user!.email;
+            const data = await PaymentModel.find({ user: email }).sort({ _id: -1 });
+            return res.status(200).json(data);
         } catch (error) {
             return res.status(500).json({ message: 'Internal Server Error' });
         }
@@ -270,6 +278,10 @@ class ControllerPayments {
     async CancelOrder(req: Request, res: Response): Promise<Response> {
         try {
             const { id } = req.body as { id: string };
+            const email = req.user!.email;
+            const order = await PaymentModel.findOne({ _id: id });
+            if (!order) return res.status(404).json({ message: 'Đơn hàng không tồn tại' });
+            if (order.user !== email) return res.status(403).json({ message: 'Bạn không có quyền hủy đơn hàng này' });
             await PaymentModel.deleteOne({ _id: id });
             return res.status(200).json({ message: 'Hủy đơn hàng thành công !!!' });
         } catch (error) {

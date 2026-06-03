@@ -16,7 +16,7 @@ class ControllerCart {
                 type: number;
             };
 
-            if (!nameProduct || !quantityProduct || !priceProduct || !imgProduct || !size || !type) {
+            if (!nameProduct || !quantityProduct || !priceProduct || !imgProduct || !size || type === undefined || type === null) {
                 return res.status(400).json({ message: 'Dữ liệu không đầy đủ!' });
             }
 
@@ -107,7 +107,8 @@ class ControllerCart {
             if (dataUser) {
                 const updatedCart = await CartModel.findOneAndUpdate(
                     { user: email },
-                    { name, phone, address }
+                    { name, phone, address },
+                    { new: true }
                 );
                 return res.status(200).json({ message: 'Cập nhật thông tin giỏ hàng thành công', updatedCart });
             }
