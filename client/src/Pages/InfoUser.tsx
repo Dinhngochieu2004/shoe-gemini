@@ -8,6 +8,8 @@ import { faEnvelope, faLock, faMoneyCheckDollar, faPhone } from '@fortawesome/fr
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import cookies from 'js-cookie';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { IUser, IPayment } from '../types';
 
 const cx = classNames.bind(styles);
@@ -26,13 +28,22 @@ function InfoUser(): JSX.Element {
 
     useEffect(() => { window.scrollTo(0, 0); }, []);
 
-    const handleLogOut = (): void => {
-        request.post('/api/logout');
-        setTimeout(() => navigate('/'), 2000);
+    const handleLogOut = async (): Promise<void> => {
+        try {
+            await request.post('/api/logout');
+        } catch {
+            // ignore — still clear local state even if server call fails
+        } finally {
+            cookies.remove('logged');
+            localStorage.removeItem('accessToken');
+            toast.success('Đăng xuất thành công!');
+            setTimeout(() => navigate('/'), 1500);
+        }
     };
 
     return (
         <div className={cx('wrapper')}>
+            <ToastContainer />
             <header><Header /></header>
             <main className={cx('main')}>
                 <div className={cx('info-user')}>

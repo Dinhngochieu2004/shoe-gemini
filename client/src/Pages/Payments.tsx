@@ -31,17 +31,6 @@ function Payments(): JSX.Element {
     const navigate = useNavigate();
     const { getCart } = useStore();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                if (name && phone && address) {
-                    await requestUpdateInfoCart({ name, phone: Number(phone), address });
-                }
-            } catch (error) { console.log(error); }
-        };
-        fetchData();
-    }, [name, phone, address]);
-
     const totalProduct = useMemo(() => dataCart.map((item) => item.sumprice)[0] ?? 0, [dataCart]);
 
     useEffect(() => { axios.get<{ data: ILocation[] }>('https://esgoo.net/api-tinhthanh/1/0.htm').then((res) => setTinhThanh(res.data.data)).catch(() => {}); }, []);
@@ -54,6 +43,12 @@ function Payments(): JSX.Element {
 
     const handlePayment = async (): Promise<void> => {
         try {
+            if (!name || !phone || !address) {
+                toast.error('Vui lòng nhập đầy đủ họ tên, số điện thoại và địa chỉ!');
+                return;
+            }
+            await requestUpdateInfoCart({ name, phone: Number(phone), address });
+
             if (paymentMethod === 'Momo') {
                 const res = await request.post<{ payUrl: string }>('/api/payment', { dataProducts, address });
                 window.open(res.data.payUrl);

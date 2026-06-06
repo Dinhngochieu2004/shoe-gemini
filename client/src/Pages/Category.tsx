@@ -27,7 +27,12 @@ function Category(): JSX.Element {
         else if (pathName === 'giay-nu') setCheckList(2);
         else if (pathName === '') setCheckList('');
         else setCheckList(3);
+        setPage(1);
     }, [pathName]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [checkList]);
 
     useEffect(() => {
         request.get<IProduct[]>('/api/products').then((res) => setDataProducts(res.data));

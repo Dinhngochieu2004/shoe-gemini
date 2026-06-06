@@ -3,6 +3,7 @@ import styles from '../Styles/DetailProducts.module.scss';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import request from '../Config/api';
+import DOMPurify from 'dompurify';
 import { useEffect, useState } from 'react';
 import addToCartProduct from '../utils/HandleCart/AddToCart';
 import { toast, ToastContainer } from 'react-toastify';
@@ -167,7 +168,7 @@ function DetailProducts(): JSX.Element {
                 {dataProduct.map((item) => (
                     <div key={item._id} className={cx('description')}>
                         <h2>THÔNG TIN SẢN PHẨM</h2>
-                        <div dangerouslySetInnerHTML={{ __html: item.description }} />
+                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.description) }} />
                     </div>
                 ))}
                 <div>

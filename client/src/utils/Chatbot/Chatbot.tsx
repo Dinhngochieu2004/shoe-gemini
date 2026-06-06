@@ -4,6 +4,7 @@ import { requestChat } from '../../Config/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComments, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { IChatMessage } from '../../types';
+import DOMPurify from 'dompurify';
 
 const Chatbot = (): JSX.Element => {
     const [isOpen, setIsOpen] = useState(false);
@@ -58,7 +59,7 @@ const Chatbot = (): JSX.Element => {
                     <div className={styles.messageList}>
                         {messages.map((message, index) => (
                             <div key={index} className={`${styles.message} ${message.sender === 'user' ? styles.userMessage : styles.botMessage}`}>
-                                <div className={styles.messageContent} dangerouslySetInnerHTML={{ __html: message.text }} />
+                                <div className={styles.messageContent} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message.text) }} />
                             </div>
                         ))}
                         {isLoading && (

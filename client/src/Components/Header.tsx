@@ -3,6 +3,7 @@ import styles from '../Styles/Header.module.scss';
 import request, { requestLogout } from '../Config/api';
 import useDebounce from '../hooks/useDebounce';
 import logo from '../assests/imgs/logo.jpg';
+import cookies from 'js-cookie';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faCartPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
@@ -30,10 +31,13 @@ function Header(): JSX.Element {
     const handleLogOut = async (): Promise<void> => {
         try {
             await requestLogout();
-            setTimeout(() => window.location.reload(), 2000);
+        } catch {
+            // ignore — still clear local state even if server call fails
+        } finally {
+            cookies.remove('logged');
+            localStorage.removeItem('accessToken');
             navigate('/');
-        } catch (error) {
-            console.log(error);
+            window.location.reload();
         }
     };
 
