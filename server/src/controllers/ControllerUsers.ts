@@ -114,8 +114,8 @@ const ControllerUser = {
 
             const secret = readSecret('jwt_refresh_key', 'JWT_REFRESH_KEY') as string;
             try {
-                const decoded = jwt.verify(refreshToken, secret) as { email: string; isAdmin: boolean };
-                const newAccessToken = await generateAccessToken(decoded);
+                const decoded = jwt.verify(refreshToken, secret) as JwtUserPayload;
+                const newAccessToken = await generateAccessToken({ email: decoded.email, isAdmin: decoded.admin });
                 await TokenModel.updateOne({ refreshToken }, { $set: { accessToken: newAccessToken } });
                 res.status(200).json({ accessToken: newAccessToken });
             } catch {
@@ -134,6 +134,11 @@ const ControllerUser = {
             await setTokenBlacklist(isToken.accessToken);
             await setTokenBlacklist(isToken.refreshToken);
             await TokenModel.deleteOne({ accessToken });
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+            });
             return res.status(200).json('Đăng xuất thành công !!!');
         } catch (error) {
             return res.status(500).json(error);

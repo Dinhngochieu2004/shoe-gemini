@@ -7,7 +7,7 @@
         "dev": "tsx watch src/server.ts",
         "dev:nodemon": "nodemon --watch src --ext ts,json --exec \"tsx src/server.ts\"",
         "build": "tsc",
-        "start": "nodemon --exec tsx src/server.ts",
+        "start": "nodemon --signal SIGTERM --delay 1500ms --exec tsx src/server.ts",
         "typecheck": "tsc --noEmit",
         "test": "jest --runInBand",
         "test:pbt": "jest --testPathPattern=pbt --runInBand"
