@@ -37,13 +37,15 @@ const io = new SocketIOServer(server, {
 // ─── Trust Proxy (nginx sits in front) ───────────────────────────────────────
 app.set('trust proxy', 1);
 
-// ─── Security Middleware (first) ─────────────────────────────────────────────
+// ─── CORS first — must run before rate limiter so 429 responses carry CORS headers ──
+app.use(cors({ origin: process.env.REACT_APP_URL, credentials: true }));
+
+// ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmetMiddleware);
 app.use(generalRateLimit);
 
 // ─── Core Middleware ──────────────────────────────────────────────────────────
 app.use(cookieParser());
-app.use(cors({ origin: process.env.REACT_APP_URL, credentials: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '')));

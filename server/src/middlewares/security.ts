@@ -11,6 +11,8 @@ export const helmetMiddleware = helmet({
             imgSrc: ["'self'", 'data:', 'blob:'],
         },
     },
+    // Allow cross-origin clients (React dev at :3000) to load images from this server
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     hsts: {
         maxAge: 31536000,
         includeSubDomains: true,
