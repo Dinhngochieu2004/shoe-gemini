@@ -1,33 +1,10 @@
-# Docker Swarm stack — zero-downtime rolling updates.
-#
-# Zero-downtime cơ chế:
-#   • order: start-first   → container mới healthy TRƯỚC KHI container cũ dừng
-#   • healthcheck          → swarm biết container đã sẵn sàng nhận traffic
-#   • failure_action: rollback → tự rollback nếu update thất bại
-#   • monitor              → quan sát sau update trước khi xác nhận thành công
-#
-# Deploy lần đầu:
-#   docker swarm init
-#   docker stack deploy -c docker-stack.yml shoe-app
-#
-# Rolling update (chỉ cần re-deploy — không có downtime):
-#   docker stack deploy -c docker-stack.yml shoe-app
-#
-# Tạo secrets (chạy 1 lần):
-#   echo "mongodb+srv://..." | docker secret create mongo_uri -
-#   echo "redis://..."       | docker secret create redis_uri -
-#   ... (xem danh sách secrets ở cuối file)
-
 services:
 
-  # ─── Backend ──────────────────────────────────────────────────────────────
   backend:
     image: dinhngochieu3112004/shoe-gemini-backend:latest
     environment:
       - PORT=5001
       - SERVER_URL=https://giaythethao.click
-      - REACT_APP_URL=https://giaythethao.click
-      - REACT_APP_URL_DOMAIN=https://giaythethao.click
     secrets:
       - mongo_uri
       - redis_uri
@@ -47,7 +24,6 @@ services:
       - uploads-data:/app/dist/uploads
     networks:
       - mern-stack-net
-    # Healthcheck: swarm dùng để quyết định container đã sẵn sàng nhận traffic
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:5001/health || exit 1"]
       interval: 30s
@@ -63,9 +39,9 @@ services:
       update_config:
         parallelism: 1
         delay: 10s
-        order: start-first          # key: mới healthy → cũ dừng (0 downtime)
+        order: start-first
         failure_action: rollback
-        monitor: 30s                # quan sát 30s sau khi container mới lên
+        monitor: 30s
       rollback_config:
         parallelism: 1
         delay: 5s
@@ -77,26 +53,24 @@ services:
         max_attempts: 3
         window: 120s
 
-  # ─── Frontend ─────────────────────────────────────────────────────────────
   frontend:
     image: dinhngochieu3112004/shoe-gemini-frontend:latest
     networks:
       - mern-stack-net
-    # Healthcheck: nginx trong container production trả về 200 cho "/"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 30s
     deploy:
       replicas: 2
       placement:
-        max_replicas_per_node: 1    # mỗi node chạy tối đa 1 frontend replica
+        max_replicas_per_node: 1
       update_config:
-        parallelism: 1              # update từng replica một
+        parallelism: 1
         delay: 10s
-        order: start-first          # 0 downtime
+        order: start-first
         failure_action: rollback
         monitor: 20s
       rollback_config:
@@ -110,14 +84,13 @@ services:
         max_attempts: 3
         window: 60s
 
-  # ─── Nginx (gateway + TLS) ────────────────────────────────────────────────
   nginx:
     image: nginx:1.27.0-alpine3.19
     ports:
       - target: 80
         published: 80
         protocol: tcp
-        mode: host                  # host mode: bypass routing-mesh, giảm latency
+        mode: host
       - target: 443
         published: 443
         protocol: tcp
@@ -133,7 +106,6 @@ services:
     networks:
       - mern-stack-net
     deploy:
-      # replicas: 1 trên manager — cho phép order: start-first (global mode không hỗ trợ)
       replicas: 1
       placement:
         constraints:
@@ -154,13 +126,11 @@ services:
         max_attempts: 3
         window: 60s
 
-  # ─── Certbot auto-renew ───────────────────────────────────────────────────
   certbot:
     image: certbot/certbot:v2.11.0
     volumes:
       - certbot-certs:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    # Renew mỗi 12h — cert 90 ngày, tự renew từ ngày ~60
     command:
       - sh
       - -c
@@ -178,14 +148,12 @@ services:
         max_attempts: 3
         window: 120s
 
-# ─── Configs ────────────────────────────────────────────────────────────────
 configs:
   nginx_main_conf:
     file: ./nginx/nginx.conf
   nginx_ssl_conf:
     file: ./nginx/nginx-ssl.conf
 
-# ─── Secrets (tạo trước khi deploy) ─────────────────────────────────────────
 # echo "<value>" | docker secret create <name> -
 secrets:
   mongo_uri:
@@ -217,17 +185,15 @@ secrets:
   email_refresh_token:
     external: true
 
-# ─── Networks ────────────────────────────────────────────────────────────────
 networks:
   mern-stack-net:
     driver: overlay
     driver_opts:
-      encrypted: "true"           # mã hóa traffic giữa các node
+      encrypted: "true"
 
-# ─── Volumes ─────────────────────────────────────────────────────────────────
 volumes:
   uploads-data:
-    driver: local                 # single-node: OK. Multi-node: dùng NFS driver.
+    driver: local
   certbot-certs:
     driver: local
   certbot-www:
