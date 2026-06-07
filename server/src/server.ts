@@ -50,6 +50,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '')));
 
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 route(app);
 
