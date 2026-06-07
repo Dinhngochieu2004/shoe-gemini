@@ -66,7 +66,7 @@ function DetailProducts(): JSX.Element {
     }, [dataProduct]);
 
     useEffect(() => {
-        request.get<IProduct[]>('/api/product', { params: { id } }).then((res) => setDataProduct(res.data));
+        request.get<IProduct[]>('/api/product', { params: { id } }).then((res) => setDataProduct(res.data)).catch(() => {});
     }, [id]);
 
     useEffect(() => {
@@ -76,12 +76,20 @@ function DetailProducts(): JSX.Element {
     useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
     const handleAddProduct = async (props: IProduct): Promise<void> => {
+        if (!selectSize) {
+            toast.error('Vui lòng chọn size trước khi thêm vào giỏ hàng!');
+            return;
+        }
         try {
             const data = await addToCartProduct(props, quantity, selectSize);
-            if (data) toast.success(data.data.message);
-            await getCart();
+            if (data) {
+                toast.success(data.data.message);
+                await getCart();
+            } else {
+                toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!');
+            }
         } catch {
-            toast.error('Vui lòng đăng nhập');
+            toast.error('Có lỗi xảy ra, vui lòng thử lại!');
         }
     };
 

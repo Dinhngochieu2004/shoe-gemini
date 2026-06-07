@@ -4,11 +4,12 @@ import request from '../Config/api';
 import { useEffect, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 
 function RegisterUser(): JSX.Element {
+    const navigate = useNavigate();
     const [fullname, setFullname] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -30,6 +31,7 @@ function RegisterUser(): JSX.Element {
                     fullname, email, password, confirmPassword, phone,
                 });
                 toast.success(res.data.message);
+                setTimeout(() => navigate('/login'), 1500);
             }
         } catch (error: unknown) {
             const err = error as { response?: { data?: { message?: string } } };

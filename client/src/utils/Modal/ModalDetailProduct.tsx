@@ -2,6 +2,7 @@ import classNames from 'classnames/bind';
 import styles from '../../Styles/ModalDetailProduct.module.scss';
 import Modal from 'react-bootstrap/Modal';
 import addToCartProduct from '../HandleCart/AddToCart';
+import DOMPurify from 'dompurify';
 import request from '../../Config/api';
 import { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
@@ -41,12 +42,13 @@ function ModalDetailProduct({ id, show, setShow }: ModalDetailProductProps): JSX
 
     const handleAddToCart = async (props: IProduct): Promise<void> => {
         if (!dataUser?._id) return void toast.error('Vui lòng đăng nhập');
+        if (!selectSize) return void toast.error('Vui lòng chọn size trước khi thêm vào giỏ hàng!');
         try {
             await addToCartProduct(props, quantity, selectSize);
             await getCart();
             toast.success('Thêm vào giỏ hàng thành công');
         } catch {
-            toast.error('Vui lòng đăng nhập');
+            toast.error('Có lỗi xảy ra, vui lòng thử lại!');
         }
     };
 
@@ -68,7 +70,7 @@ function ModalDetailProduct({ id, show, setShow }: ModalDetailProductProps): JSX
                         <div className={cx('content')}>
                             <h2>{item.name}</h2>
                             <span id={cx('price')}>{item.price.toLocaleString()} đ</span>
-                            <div dangerouslySetInnerHTML={{ __html: item?.description }} />
+                            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item?.description) }} />
                             <div className={cx('select-size')}>
                                 <span>Kích Cỡ : {selectSize}</span>
                                 <div className={cx('form-size')}>

@@ -19,10 +19,14 @@ function Payments(): JSX.Element {
     const [dataCart, setDataCart] = useState<ICart[]>([]);
     const [tinhthanh, setTinhThanh] = useState<ILocation[]>([]);
     const [idTinhThanh, setIdTinhThanh] = useState(0);
+    const [nameTinhThanh, setNameTinhThanh] = useState('');
     const [huyen, setHuyen] = useState<ILocation[]>([]);
     const [idHuyen, setIdHuyen] = useState(0);
+    const [nameHuyen, setNameHuyen] = useState('');
     const [xa, setXa] = useState<ILocation[]>([]);
-    const [address, setAddress] = useState('');
+    const [idXa, setIdXa] = useState(0);
+    const [nameXa, setNameXa] = useState('');
+    const [streetAddress, setStreetAddress] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [dataProducts, setDataProducts] = useState<ICartItem[]>([]);
     const [dataLengthProducts, setDataLengthProducts] = useState(0);
@@ -32,6 +36,11 @@ function Payments(): JSX.Element {
     const { getCart } = useStore();
 
     const totalProduct = useMemo(() => dataCart.map((item) => item.sumprice)[0] ?? 0, [dataCart]);
+
+    const address = useMemo(() => {
+        const parts = [streetAddress, nameXa, nameHuyen, nameTinhThanh].filter(Boolean);
+        return parts.join(', ');
+    }, [streetAddress, nameXa, nameHuyen, nameTinhThanh]);
 
     useEffect(() => { axios.get<{ data: ILocation[] }>('https://esgoo.net/api-tinhthanh/1/0.htm').then((res) => setTinhThanh(res.data.data)).catch(() => {}); }, []);
     useEffect(() => { if (idTinhThanh !== 0) axios.get<{ data: ILocation[] }>(`https://esgoo.net/api-tinhthanh/2/${idTinhThanh}.htm`).then((res) => setHuyen(res.data.data)).catch(() => {}); }, [idTinhThanh]);
@@ -88,25 +97,40 @@ function Payments(): JSX.Element {
                             </div>
                         </div>
                         <div>
-                            <select className="form-select" onChange={(e) => setIdTinhThanh(Number(e.target.value))}>
+                            <select className="form-select" value={idTinhThanh} onChange={(e) => {
+                                const selected = tinhthanh.find((t) => t.id === e.target.value);
+                                setIdTinhThanh(Number(e.target.value));
+                                setNameTinhThanh(selected?.name ?? '');
+                                setIdHuyen(0); setNameHuyen(''); setHuyen([]);
+                                setIdXa(0); setNameXa(''); setXa([]);
+                            }}>
                                 <option value="0">Tỉnh/Thành</option>
                                 {tinhthanh.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <select onChange={(e) => setIdHuyen(Number(e.target.value))} className="form-select mt-3">
+                            <select value={idHuyen} onChange={(e) => {
+                                const selected = huyen.find((h) => h.id === e.target.value);
+                                setIdHuyen(Number(e.target.value));
+                                setNameHuyen(selected?.name ?? '');
+                                setIdXa(0); setNameXa(''); setXa([]);
+                            }} className="form-select mt-3">
                                 <option value="0">Quận/Huyện</option>
                                 {huyen.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                             </select>
-                            <select className="form-select mt-3">
+                            <select className="form-select mt-3" value={idXa} onChange={(e) => {
+                                const selected = xa.find((x) => x.id === e.target.value);
+                                setIdXa(Number(e.target.value));
+                                setNameXa(selected?.name ?? '');
+                            }}>
                                 <option value="0">Xã/Phường/Thị trấn</option>
                                 {xa.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                             </select>
                         </div>
                         <div>
                             <div className="form-floating mt-3">
-                                <input type="text" className="form-control" id="floatingAddress" onChange={(e) => setAddress(e.target.value)} />
-                                <label htmlFor="floatingAddress">Địa Chỉ *</label>
+                                <input type="text" className="form-control" id="floatingAddress" onChange={(e) => setStreetAddress(e.target.value)} />
+                                <label htmlFor="floatingAddress">Số nhà / Tên đường *</label>
                             </div>
                         </div>
                         <div className={cx('select-payment')}>

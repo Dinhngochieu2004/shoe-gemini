@@ -27,14 +27,18 @@ function ModalUpdatePro({ show, setShow, data }: ModalUpdateProProps): JSX.Eleme
     }, [data]);
 
     const handleUpdatePro = async (): Promise<void> => {
-        const res = await request.post<{ message: string }>('/api/editpro', {
-            id: data._id,
-            nameProduct,
-            priceProduct,
-            description: editorRef.current ? editorRef.current.getContent() : '',
-        });
-        toast.success(res.data.message);
-        setShow(false);
+        try {
+            const res = await request.post<{ message: string }>('/api/editpro', {
+                id: data._id,
+                nameProduct,
+                priceProduct,
+                description: editorRef.current ? editorRef.current.getContent() : '',
+            });
+            toast.success(res.data.message);
+            setShow(false);
+        } catch {
+            toast.error('Cập nhật sản phẩm thất bại, vui lòng thử lại!');
+        }
     };
 
     return (

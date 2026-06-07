@@ -4,7 +4,6 @@ import { IUser, ICart } from '../types';
 
 const request = axios.create({
     baseURL: process.env.REACT_APP_SERVER,
-    headers: { 'X-Custom-Header': 'foobar' },
     withCredentials: true,
 });
 
@@ -55,7 +54,6 @@ export const requestPaymentVNPAY = async (data: unknown): Promise<{ vnpayRespons
     return res.data;
 };
 
-// FIX: const → let for mutable variables
 let isRefreshing = false;
 let failedRequestsQueue: Array<{
     resolve: () => void;
@@ -70,35 +68,42 @@ request.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            if (!isRefreshing) {
-                isRefreshing = true;
-                try {
-                    const token = cookies.get('logged');
-                    if (!token) {
-                        return Promise.reject(error);
-                    }
-                    const data = await requestRefreshToken();
-                    if (data?.accessToken) {
-                        localStorage.setItem('accessToken', data.accessToken);
-                    }
-                    failedRequestsQueue.forEach((req) => req.resolve());
-                    failedRequestsQueue = [];
-                } catch (refreshError) {
-                    failedRequestsQueue.forEach((req) => req.reject(refreshError));
-                    failedRequestsQueue = [];
-                    localStorage.clear();
-                    window.location.href = '/login';
-                } finally {
-                    isRefreshing = false;
-                }
+            // Another refresh already in progress — queue and wait
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedRequestsQueue.push({
+                        resolve: () => resolve(request(originalRequest)),
+                        reject: (err) => reject(err),
+                    });
+                });
             }
 
-            return new Promise((resolve, reject) => {
-                failedRequestsQueue.push({
-                    resolve: () => resolve(request(originalRequest)),
-                    reject: (err) => reject(err),
-                });
-            });
+            isRefreshing = true;
+
+            try {
+                const token = cookies.get('logged');
+                if (!token) {
+                    isRefreshing = false;
+                    return Promise.reject(error);
+                }
+                const data = await requestRefreshToken();
+                if (data?.accessToken) {
+                    localStorage.setItem('accessToken', data.accessToken);
+                }
+                failedRequestsQueue.forEach((req) => req.resolve());
+                failedRequestsQueue = [];
+                isRefreshing = false;
+                // Retry the original request with the new token
+                return request(originalRequest);
+            } catch (refreshError) {
+                failedRequestsQueue.forEach((req) => req.reject(refreshError));
+                failedRequestsQueue = [];
+                cookies.remove('logged');
+                localStorage.removeItem('accessToken');
+                isRefreshing = false;
+                // Do NOT redirect — let the caller handle gracefully
+                return Promise.reject(refreshError);
+            }
         }
 
         return Promise.reject(error);

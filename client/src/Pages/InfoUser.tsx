@@ -37,7 +37,10 @@ function InfoUser(): JSX.Element {
             cookies.remove('logged');
             localStorage.removeItem('accessToken');
             toast.success('Đăng xuất thành công!');
-            setTimeout(() => navigate('/'), 1500);
+            setTimeout(() => {
+                navigate('/');
+                window.location.reload();
+            }, 1500);
         }
     };
 

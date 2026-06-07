@@ -7,7 +7,7 @@ import cookies from 'js-cookie';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faCartPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import { useStore } from '../hooks/useStore';
 import { IProduct } from '../types';
@@ -24,11 +24,14 @@ function Header(): JSX.Element {
     const debounce = useDebounce(searchValue, 500);
 
     useEffect(() => {
-        if (searchValue === '') return;
-        request.get<IProduct[]>('/api/search', { params: { nameProduct: debounce } }).then((res) => setDataSearch(res.data));
+        if (searchValue === '') { setDataSearch([]); return; }
+        request.get<IProduct[]>('/api/search', { params: { nameProduct: debounce } })
+            .then((res) => setDataSearch(res.data))
+            .catch(() => {});
     }, [debounce, searchValue]);
 
-    const handleLogOut = async (): Promise<void> => {
+    const handleLogOut = async (e: React.MouseEvent<HTMLAnchorElement>): Promise<void> => {
+        e.preventDefault();
         try {
             await requestLogout();
         } catch {
@@ -41,11 +44,16 @@ function Header(): JSX.Element {
         }
     };
 
+    const handleSearchResultClick = (): void => {
+        setSearchValue('');
+        setDataSearch([]);
+    };
+
     return (
         <div className={cx('wrapper')}>
             <div className={cx('inner')}>
                 <div className={cx('row-left')}>
-                    <Link to={'/'}><img id={cx('logo')} src={logo} alt="" style={{ width: '120px', height: 'auto' }} /></Link>
+                    <Link to={'/'}><img id={cx('logo')} src={logo} alt="Logo" /></Link>
                     <ul>
                         <Link to={'/category'}><li>Tất Cả Sản Phẩm</li></Link>
                         <Link to={'/category/giay-nam'}><li>Giày Nam</li></Link>
@@ -60,7 +68,7 @@ function Header(): JSX.Element {
                         {searchValue.length > 0 && (
                             <div className={cx('result')}>
                                 {dataSearch.map((item) => (
-                                    <Link to={`/product/${item._id}/${item.slug}`} key={item._id}>
+                                    <Link to={`/product/${item._id}/${item.slug}`} key={item._id} onClick={handleSearchResultClick}>
                                         <div className={cx('form-result')}>
                                             {dataSearch.length === 1 && item.name === 'Không Tìm Thấy Sản Phẩm !!!' ? (
                                                 <img src={`${item?.img[0]}`} alt="" />
@@ -94,7 +102,7 @@ function Header(): JSX.Element {
                                     {dataUser.isAdmin && (
                                         <li><Link style={{ color: 'red' }} className="dropdown-item" to={'/admin'}>Trang Quản Trị</Link></li>
                                     )}
-                                    <li onClick={handleLogOut}><a className="dropdown-item" href="/#">Đăng Xuất</a></li>
+                                    <li><a className="dropdown-item" href="/#" onClick={handleLogOut}>Đăng Xuất</a></li>
                                 </ul>
                             </div>
                         ) : (
@@ -126,8 +134,8 @@ function Header(): JSX.Element {
                                         <li><Link style={{ color: 'red' }} className="dropdown-item" to={'/admin'}>Trang Quản Trị</Link></li>
                                     )}
                                     {dataUser?._id && (
-                                        <li onClick={handleLogOut}>
-                                            <a style={{ color: 'red', fontWeight: 700 }} className="dropdown-item" href="/#">Đăng Xuất</a>
+                                        <li>
+                                            <a style={{ color: 'red', fontWeight: 700 }} className="dropdown-item" href="/#" onClick={handleLogOut}>Đăng Xuất</a>
                                         </li>
                                     )}
                                 </ul>

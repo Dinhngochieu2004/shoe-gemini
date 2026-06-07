@@ -14,9 +14,13 @@ function ModalCancelOrder({ show, setShow, item }: ModalCancelOrderProps): JSX.E
     const handleClose = () => setShow(false);
 
     const handleDeletePro = async (): Promise<void> => {
-        const res = await request.post<{ message: string }>('/api/cancelorder', { id: item });
-        toast.success(res.data.message);
-        handleClose();
+        try {
+            const res = await request.post<{ message: string }>('/api/cancelorder', { id: item });
+            toast.success(res.data.message);
+            handleClose();
+        } catch {
+            toast.error('Hủy đơn hàng thất bại, vui lòng thử lại!');
+        }
     };
 
     return (

@@ -75,7 +75,13 @@ $shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
     }
 }
 
-#logo { width: 110px; height: auto; }
+#logo {
+    height: 48px;
+    width: auto;
+    max-width: 130px;
+    object-fit: contain;
+    display: block;
+}
 
 // ─── Right ────────────────────────────────────────────────────────────────────
 .row-right {

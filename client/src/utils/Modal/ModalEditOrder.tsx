@@ -16,11 +16,15 @@ function ModalEditOrder({ show, setShow, id, address }: ModalEditOrderProps): JS
     const handleClose = () => setShow(false);
     const [valueOption, setValueOption] = useState(0);
 
-    const handleEditOrder = (): void => {
-        request.post<{ message: string }>('/api/editorder', { valueOption, id }).then((res) => {
+    const handleEditOrder = async (): Promise<void> => {
+        try {
+            const res = await request.post<{ message: string }>('/api/editorder', { valueOption, id });
             toast.success(res.data.message);
-        });
-        setValueOption(0);
+            setValueOption(0);
+            handleClose();
+        } catch {
+            toast.error('Cập nhật đơn hàng thất bại, vui lòng thử lại!');
+        }
     };
 
     return (

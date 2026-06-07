@@ -32,6 +32,11 @@ function AddProducts({ setCheckOpenAddProduct }: AddProductsProps): JSX.Element 
     };
 
     const handleAddProduct = async (): Promise<void> => {
+        if (!nameProduct.trim()) return void toast.error('Vui lòng nhập tên sản phẩm!');
+        if (priceProduct <= 0) return void toast.error('Vui lòng nhập giá sản phẩm hợp lệ!');
+        if (checkType === 0) return void toast.error('Vui lòng chọn loại giày!');
+        if (fileImg.length === 0) return void toast.error('Vui lòng chọn ít nhất 1 ảnh sản phẩm!');
+
         const formData = new FormData();
         formData.append('nameProduct', nameProduct);
         formData.append('priceProduct', String(priceProduct));

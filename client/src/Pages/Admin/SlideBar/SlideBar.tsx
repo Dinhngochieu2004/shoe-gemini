@@ -2,6 +2,7 @@ import classNames from 'classnames/bind';
 import styles from './Slidebar.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBagShopping, faCartPlus, faChartLine, faRightFromBracket, faUsers } from '@fortawesome/free-solid-svg-icons';
+import cookies from 'js-cookie';
 import request from '../../../Config/api';
 import { useNavigate } from 'react-router-dom';
 import { ISlideBarProps } from '../../../types';
@@ -11,10 +12,17 @@ const cx = classNames.bind(styles);
 function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }: ISlideBarProps): JSX.Element {
     const navigate = useNavigate();
 
-    const handleLogout = (): void => {
-        request.post('/api/logout');
-        setTimeout(() => window.location.reload(), 2000);
-        navigate('/');
+    const handleLogout = async (): Promise<void> => {
+        try {
+            await request.post('/api/logout');
+        } catch {
+            // ignore — still clear local state even if server call fails
+        } finally {
+            cookies.remove('logged');
+            localStorage.removeItem('accessToken');
+            navigate('/');
+            window.location.reload();
+        }
     };
 
     const menuItems = [
