@@ -1,42 +1,22 @@
 # syntax=docker/dockerfile:1
 
-# ─── Base ─────────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS base
+FROM node:20-alpine AS build
 WORKDIR /app
-ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 COPY package.json package-lock.json ./
-
-# ─── Dev ──────────────────────────────────────────────────────────────────────
-FROM base AS dev
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --loglevel error --no-fund --no-audit
-COPY . .
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
-    && mkdir -p /app/src/uploads \
-    && chown -R appuser:appgroup /app
-USER appuser
-EXPOSE 5001
-CMD ["npm", "run", "dev:nodemon"]
-
-# ─── Build ────────────────────────────────────────────────────────────────────
-FROM base AS build
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline --loglevel error --no-fund --no-audit
 COPY . .
 RUN npm run build
 
-# ─── Production (Jenkins → Docker Swarm) ──────────────────────────────────────
 FROM node:20-alpine AS production
 WORKDIR /app
-ENV NODE_ENV=production \
-    NPM_CONFIG_UPDATE_NOTIFIER=false
+ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev --prefer-offline --loglevel error --no-fund --no-audit \
-    && addgroup -S appgroup && adduser -S appuser -G appgroup \
-    && mkdir -p /app/dist/uploads \
-    && chown -R appuser:appgroup /app
-COPY --from=build --chown=appuser:appgroup /app/dist ./dist
-USER appuser
+    && addgroup -S app && adduser -S app -G app \
+    && mkdir -p /app/dist/uploads && chown -R app:app /app
+COPY --from=build --chown=app:app /app/dist ./dist
+USER app
 EXPOSE 5001
 CMD ["node", "dist/server.js"]
