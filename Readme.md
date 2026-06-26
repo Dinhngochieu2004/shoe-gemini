@@ -189,5 +189,3 @@ Mọi file server đều theo cùng một bố cục để bạn dễ theo dõi:
 ```
 
 Mỗi lệnh đều kèm giải thích **"tại sao"**, không chỉ "gõ gì" — vì tài liệu này viết cho người mới.
-</content>
-</invoke>
