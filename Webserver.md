@@ -15,15 +15,15 @@ pfSense Firewall
    │
    ▼
 ┌──────────────────────────────────────────────────────────┐
-│  WEB SERVER  (ens33: 192.168.159.10 | ens34: 10.10.10.10) │
-│                                                            │
-│   Nginx Reverse Proxy ── SSL (Certbot, auto-renew 90d)    │
-│   (TLS Termination, Replicas: 2)                          │
-│        │                                                   │
-│        ├──▶ Frontend  (Replicas: 2)                       │
-│        └──▶ Backend   (Replicas: 2)                        │
-│                  │                                         │
-│        Docker Swarm Cluster + Overlay Network             │
+│  WEB SERVER  (ens33: 192.168.159.10 | ens34: 10.10.10.10)│
+│                                                          │
+│   Nginx Reverse Proxy ── SSL (Certbot, auto-renew 90d)   │
+│   (TLS Termination, Replicas: 2)                         │
+│        │                                                 │
+│        ├──▶ Frontend  (Replicas: 2)                      │
+│        └──▶ Backend   (Replicas: 2)                      │
+│                  │                                       │
+│        Docker Swarm Cluster + Overlay Network            │
 └──────────────────────────────────────────────────────────┘
         │ TLS                          │ Get/Set Token (TLS)
         ▼                              ▼
@@ -36,6 +36,7 @@ Tích hợp giám sát:
 ```
 
 **Giải thích khái niệm cho người mới:**
+
 - **Reverse proxy**: một "người gác cổng" nhận mọi request từ internet rồi chuyển vào đúng container bên trong. Người dùng không bao giờ chạm trực tiếp vào app.
 - **TLS Termination**: Nginx là nơi giải mã HTTPS. Bên trong cluster các container nói chuyện HTTP (mạng nội bộ đã an toàn), giảm tải mã hóa cho app.
 - **Docker Swarm**: công cụ chạy nhiều bản sao (replica) của container, tự khởi động lại khi chết, tự chia tải.
@@ -44,13 +45,13 @@ Tích hợp giám sát:
 
 ## 2. Yêu Cầu Phần Cứng (VMware)
 
-| Thành phần | Tối thiểu | Khuyến nghị |
-|-----------|-----------|-------------|
-| RAM | 4 GB | 8 GB |
-| CPU | 2 vCPU | 4 vCPU |
-| Disk | 40 GB | 60 GB |
-| OS | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
-| Card mạng | 2 (NAT + Internal) | 2 (NAT + Internal) |
+| Thành phần | Tối thiểu          | Khuyến nghị        |
+| ---------- | ------------------ | ------------------ |
+| RAM        | 4 GB               | 8 GB               |
+| CPU        | 2 vCPU             | 4 vCPU             |
+| Disk       | 40 GB              | 60 GB              |
+| OS         | Ubuntu 22.04 LTS   | Ubuntu 22.04 LTS   |
+| Card mạng  | 2 (NAT + Internal) | 2 (NAT + Internal) |
 
 > **Tại sao 2 card mạng?** `ens33` (NAT) để nhận traffic từ internet; `ens34` (Internal 10.10.10.0/24) để nói chuyện với các server nội bộ (monitoring, logging) mà không lộ ra ngoài.
 
@@ -65,7 +66,7 @@ sudo nano /etc/netplan/00-installer-config.yaml
 ```yaml
 network:
   ethernets:
-    ens33:                              # Card NAT — internet
+    ens33: # Card NAT — internet
       dhcp4: false
       addresses: [192.168.159.10/24]
       routes:
@@ -73,7 +74,7 @@ network:
           via: 192.168.159.2
       nameservers:
         addresses: [8.8.8.8, 8.8.4.4]
-    ens34:                              # Card Internal — mạng nội bộ
+    ens34: # Card Internal — mạng nội bộ
       dhcp4: false
       addresses: [10.10.10.10/24]
   version: 2
@@ -164,6 +165,7 @@ sudo certbot certonly --standalone -d your-domain.com -d www.your-domain.com
 ```
 
 > **Chưa có domain (lab)** → tạo self-signed cert để test HTTPS:
+>
 > ```bash
 > sudo mkdir -p /etc/letsencrypt/live/shoe
 > sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -270,7 +272,7 @@ services:
       restart_policy: { condition: on-failure }
 
   frontend:
-    image: 10.10.10.21:80/shoe/frontend:latest    # Harbor registry
+    image: 10.10.10.21:80/shoe/frontend:latest # Harbor registry
     networks: [shoe-network]
     environment: [NODE_ENV=production]
     deploy:
@@ -289,8 +291,8 @@ services:
       restart_policy: { condition: on-failure }
 
 secrets:
-  mongo_uri:  { external: true }
-  redis_url:  { external: true }
+  mongo_uri: { external: true }
+  redis_url: { external: true }
   jwt_secret: { external: true }
 
 networks:
@@ -370,13 +372,13 @@ sudo ufw status numbered
 
 ## 13. Bảng Tổng Hợp Port
 
-| Service | Port | Mở cho |
-|---------|------|--------|
-| Nginx HTTP | 80 | Internet (pfSense) |
-| Nginx HTTPS | 443 | Internet (pfSense) |
-| Node Exporter | 9100 | Prometheus (10.10.10.32) |
-| Zabbix Agent | 10050 | Zabbix Server (10.10.10.31) |
-| SSH | 22 | Internal / Bastion |
+| Service       | Port  | Mở cho                      |
+| ------------- | ----- | --------------------------- |
+| Nginx HTTP    | 80    | Internet (pfSense)          |
+| Nginx HTTPS   | 443   | Internet (pfSense)          |
+| Node Exporter | 9100  | Prometheus (10.10.10.32)    |
+| Zabbix Agent  | 10050 | Zabbix Server (10.10.10.31) |
+| SSH           | 22    | Internal / Bastion          |
 
 ---
 
