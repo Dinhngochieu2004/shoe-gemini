@@ -1,7 +1,9 @@
 # Kiến Trúc Hệ Thống & Hướng Dẫn Hạ Tầng
 
 > **Đối tượng đọc**: Đội Quản lý hạ tầng, Đội an ninh hoặc dành cho reviewer, sinh viên người mới học devops
+
 > **Mục tiêu tài liệu này**: Cho bạn cái nhìn _toàn cảnh_ trước khi đi vào từng server. Đọc xong file này, bạn hiểu hệ thống có những máy nào, chúng nói chuyện với nhau ra sao, và nên setup hệ thống theo thứ tự nào.
+
 > **Nguồn sự thật**: 3 sơ đồ kiến trúc (On-Premise tổng quan, CI/CD Pipeline, Security/Access Control). Mọi IP và port dưới đây khớp chính xác với 3 sơ đồ đó.
 
 ---
