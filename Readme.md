@@ -1,14 +1,14 @@
-# Shoe App — Kiến Trúc Hệ Thống & Hướng Dẫn Hạ Tầng
+# Kiến Trúc Hệ Thống & Hướng Dẫn Hạ Tầng
 
-> **Đối tượng đọc**: Sinh viên mới học DevOps / System Admin.
-> **Mục tiêu tài liệu này**: Cho bạn cái nhìn *toàn cảnh* trước khi đi vào từng server. Đọc xong file này, bạn hiểu hệ thống có những máy nào, chúng nói chuyện với nhau ra sao, và nên setup theo thứ tự nào.
+> **Đối tượng đọc**: Đội Quản lý hạ tầng, Đội an ninh hoặc dành cho reviewer, sinh viên người mới học devops
+> **Mục tiêu tài liệu này**: Cho bạn cái nhìn _toàn cảnh_ trước khi đi vào từng server. Đọc xong file này, bạn hiểu hệ thống có những máy nào, chúng nói chuyện với nhau ra sao, và nên setup hệ thống theo thứ tự nào.
 > **Nguồn sự thật**: 3 sơ đồ kiến trúc (On-Premise tổng quan, CI/CD Pipeline, Security/Access Control). Mọi IP và port dưới đây khớp chính xác với 3 sơ đồ đó.
 
 ---
 
 ## 1. Hệ Thống Này Làm Gì?
 
-Đây là hạ tầng để chạy **ứng dụng web Shoe** (cửa hàng giày: Frontend + Backend) một cách **an toàn, tự động và có giám sát**, theo mô hình một công ty thật:
+Đây là hạ tầng để chạy phục vụ cho hệ thống web CRM/ERP, một cách **an toàn, tự động và có giám sát**, theo mô hình một tổ chức doanh nghiệp thật:
 
 - **Người dùng** truy cập web qua internet → đi qua tường lửa → tới ứng dụng chạy bằng Docker Swarm.
 - **Lập trình viên** push code → hệ thống **tự động** build, quét bảo mật, rồi deploy (CI/CD).
@@ -17,10 +17,10 @@
 
 Hệ thống chia làm 3 vùng:
 
-| Vùng | Gồm gì | Ai quản |
-|------|--------|---------|
-| **On-Premise** (tự host) | Web, CI/CD, Monitoring, Logging, Security, Bastion/Ansible | Đội vận hành |
-| **Database Cloud** | MongoDB Atlas, Redis Cloud | Nhà cung cấp cloud |
+| Vùng                      | Gồm gì                                                          | Ai quản                  |
+| ------------------------- | --------------------------------------------------------------- | ------------------------ |
+| **On-Premise** (tự host)  | Web, CI/CD, Monitoring, Logging, Security, Bastion/Ansible      | Tổ đội vận hành          |
+| **Database Cloud**        | MongoDB Atlas, Redis Cloud                                      | Nhà cung cấp cloud       |
 | **Người dùng & Quản trị** | User, Developer, SysAdmin, SOC, Security Officer, Data Engineer | Truy cập qua pfSense/VPN |
 
 ---
@@ -66,6 +66,7 @@ Hệ thống chia làm 3 vùng:
 </details>
 
 **Đọc sơ đồ thế nào (cho người mới):**
+
 - Internet **không bao giờ** chạm thẳng vào server. Mọi thứ phải qua **pfSense firewall** (và VPN với người quản trị).
 - App (Frontend/Backend) chạy sau **Nginx** — Nginx là người gác cổng giải mã HTTPS rồi chuyển request vào trong.
 - Dữ liệu (database) đặt trên **cloud** (MongoDB Atlas + Redis Cloud), kết nối ra bằng TLS mã hóa.
@@ -75,19 +76,19 @@ Hệ thống chia làm 3 vùng:
 
 ## 3. Danh Sách Máy Chủ & Địa Chỉ (Consistency Map)
 
-| Server | IP nội bộ | Port chính | Vai trò ngắn gọn | Tài liệu |
-|--------|-----------|-----------|------------------|----------|
-| Web Server | 192.168.159.10 / 10.10.10.10 | 80, 443 | Chạy app (Swarm) + Nginx TLS | [Webserver.md](Webserver.md) |
-| GitLab | 10.10.10.20 | 80 | Lưu source code, kích hoạt pipeline | [CICD server.md](CICD%20server.md) |
-| Jenkins | 10.10.10.21 | 8080 | Chạy pipeline build/scan/deploy | [CICD server.md](CICD%20server.md) |
-| Grafana | 10.10.10.30 | 3000 | Dashboard giám sát | [Monitoring-Server.md](Monitoring-Server.md) |
-| Zabbix | 10.10.10.31 | 10051 | Giám sát hạ tầng + cảnh báo | [Monitoring-Server.md](Monitoring-Server.md) |
-| Prometheus | 10.10.10.32 | 9090 | Thu thập metrics (pull) | [Monitoring-Server.md](Monitoring-Server.md) |
-| Kibana (log) | 10.10.10.40 | 5601 | UI xem log vận hành | [Logging-Server.md](Logging-Server.md) |
-| ElasticSearch (log) | 10.10.10.41 | 9200 | Lưu trữ log vận hành | [Logging-Server.md](Logging-Server.md) |
-| Security ElasticSearch | 10.0.1.1 | 9200 | Lưu log audit/bảo mật (SIEM) | [Security-Server.md](Security-Server.md) |
-| Security Kibana | 10.1.0.1 | 5601 | UI điều tra bảo mật | [Security-Server.md](Security-Server.md) |
-| Bastion Host | 10.10.10.5 | 22 | Cổng SSH duy nhất + Ansible | [Ansible.md](Ansible.md) |
+| Server                 | IP nội bộ                    | Port chính | Vai trò ngắn gọn                    | Tài liệu                                     |
+| ---------------------- | ---------------------------- | ---------- | ----------------------------------- | -------------------------------------------- |
+| Web Server             | 192.168.159.10 / 10.10.10.10 | 80, 443    | Chạy app (Swarm) + Nginx TLS        | [Webserver.md](Webserver.md)                 |
+| GitLab                 | 10.10.10.20                  | 80         | Lưu source code, kích hoạt pipeline | [CICD server.md](CICD%20server.md)           |
+| Jenkins                | 10.10.10.21                  | 8080       | Chạy pipeline build/scan/deploy     | [CICD server.md](CICD%20server.md)           |
+| Grafana                | 10.10.10.30                  | 3000       | Dashboard giám sát                  | [Monitoring-Server.md](Monitoring-Server.md) |
+| Zabbix                 | 10.10.10.31                  | 10051      | Giám sát hạ tầng + cảnh báo         | [Monitoring-Server.md](Monitoring-Server.md) |
+| Prometheus             | 10.10.10.32                  | 9090       | Thu thập metrics (pull)             | [Monitoring-Server.md](Monitoring-Server.md) |
+| Kibana (log)           | 10.10.10.40                  | 5601       | UI xem log vận hành                 | [Logging-Server.md](Logging-Server.md)       |
+| ElasticSearch (log)    | 10.10.10.41                  | 9200       | Lưu trữ log vận hành                | [Logging-Server.md](Logging-Server.md)       |
+| Security ElasticSearch | 10.0.1.1                     | 9200       | Lưu log audit/bảo mật (SIEM)        | [Security-Server.md](Security-Server.md)     |
+| Security Kibana        | 10.1.0.1                     | 5601       | UI điều tra bảo mật                 | [Security-Server.md](Security-Server.md)     |
+| Bastion Host           | 10.10.10.5                   | 22         | Cổng SSH duy nhất + Ansible         | [Ansible.md](Ansible.md)                     |
 
 > **Ghi nhớ quy ước**: `192.168.159.x` = card NAT (ra internet). `10.10.10.x` = mạng nội bộ. `10.0.1.x / 10.1.0.x` = mạng cô lập riêng của hệ thống bảo mật.
 
@@ -96,9 +97,11 @@ Hệ thống chia làm 3 vùng:
 ## 4. Luồng Dữ Liệu Chính
 
 ### 4.1 Luồng người dùng (request web)
+
 ```
 User → pfSense → Nginx (443, TLS) → Frontend/Backend → MongoDB Atlas / Redis Cloud
 ```
+
 Backend lấy token từ Redis, lưu dữ liệu vào MongoDB — cả hai qua kết nối TLS.
 
 ### 4.2 Luồng CI/CD (Sơ Đồ 2 — từ code tới production)
@@ -111,20 +114,25 @@ Developer push → GitLab (webhook) → Jenkins:
   → Build image → Trivy (quét lỗ hổng) → Harbor (registry)
   → Test → Deploy lên Docker Swarm (Web Server)
 ```
+
 Chi tiết: [CICD server.md](CICD%20server.md).
 
 ### 4.3 Luồng giám sát (mọi server → Monitoring)
+
 ```
 Mỗi server: Node Exporter :9100 ─(Prometheus KÉO về)→ Prometheus 10.10.10.32
             Zabbix Agent  :10050 ─(Zabbix HỎI)──────→ Zabbix 10.10.10.31
 Prometheus + Zabbix → Grafana 10.10.10.30 → Alerting → Email/SysAdmin
 ```
+
 Chi tiết: [Monitoring-Server.md](Monitoring-Server.md).
 
 ### 4.4 Luồng log (mọi server → Logging)
+
 ```
 Mỗi server: Filebeat → Log shipping :5200 → Logstash → ElasticSearch 10.10.10.41 → Kibana 10.10.10.40
 ```
+
 Chi tiết: [Logging-Server.md](Logging-Server.md).
 
 ### 4.5 Luồng truy cập quản trị & audit (Sơ Đồ 3)
@@ -136,18 +144,19 @@ Admin/SOC → SSH:22 (MFA + Ed25519) → Bastion 10.10.10.5
 Bastion → SSH Jump → Ansible → Config Push tới tất cả server
 Bastion → Audit/Session Logs → Security Server (SIEM) 10.0.1.1
 ```
+
 Phân quyền: Developer (**no-sudo**), SOC (**scoped sudo**), SysAdmin (**MFA**). Chi tiết: [Ansible.md](Ansible.md) + [Security-Server.md](Security-Server.md).
 
 ---
 
 ## 5. Tách Biệt 2 Hệ Thống Log (Đừng Nhầm!)
 
-| | Logging Server | Security Server |
-|---|---|---|
-| IP | 10.10.10.40 / .41 | 10.1.0.1 / 10.0.1.1 |
-| Lưu gì | Log **vận hành**: nginx, app, syslog | Log **bảo mật/audit**: SSH session, sudo, auth.log |
-| Ai dùng | SysAdmin (debug, vận hành) | Security Officer / SOC (điều tra) |
-| Vì sao tách | — | Nếu hệ vận hành bị chiếm, bằng chứng audit vẫn an toàn (non-repudiation) |
+|             | Logging Server                       | Security Server                                                          |
+| ----------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| IP          | 10.10.10.40 / .41                    | 10.1.0.1 / 10.0.1.1                                                      |
+| Lưu gì      | Log **vận hành**: nginx, app, syslog | Log **bảo mật/audit**: SSH session, sudo, auth.log                       |
+| Ai dùng     | SysAdmin (debug, vận hành)           | Security Officer / SOC (điều tra)                                        |
+| Vì sao tách | —                                    | Nếu hệ vận hành bị chiếm, bằng chứng audit vẫn an toàn (non-repudiation) |
 
 ---
 
@@ -188,4 +197,11 @@ Mọi file server đều theo cùng một bố cục để bạn dễ theo dõi:
 5. Cài đặt service chính        10. Snapshot VMware
 ```
 
-Mỗi lệnh đều kèm giải thích **"tại sao"**, không chỉ "gõ gì" — vì tài liệu này viết cho người mới.
+Mỗi lệnh đều kèm giải thích **"tại sao"**, không chỉ "gõ gì" — vì tài liệu này chủ yếu viết chia sẻ kiến thức cho người mới, được sử dụng làm project cá nhân.
+
+## 9. Lưu ý
+
+1. Kiến trúc hệ thống có thể có sai sót và gây khó hiểu sẽ gây khó khăn cho người mới nếu bạn không hiểu thực sự về mạng máy tính, hệ điều hành,v..v .
+2. Tất cả các file md chỉ dành cho mục đích hướng dẫn setup hệ thống và tham khảo. Bạn có thể dùng kiến trúc hạ tầng này kiểm thử trên VMware EsXi, VMware vSphere.Trên webserver bạn có thể dùng cho các trang web gồm CRM/ERP, quản lý nội bộ, thương mại điện tử,...
+3. Phần về web bạn có thể dùng các loại framework backend: Expressjs, Spring boot, Golang, Nest.js, Laravel,...
+   framework Frontend: Nextjs, Reactjs, Angular,...
